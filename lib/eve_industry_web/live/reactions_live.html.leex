@@ -1,0 +1,18 @@
+<h2>Reactions</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>TypeID</th>
+    </tr>
+  </thead>
+  <tbody id="items">
+    <%= for item <- @items do %>
+      <tr id="item-<%= item.typeID %>">
+        <td><%= item.products.name.typeName %></td>
+        <td><%= item.typeID %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
