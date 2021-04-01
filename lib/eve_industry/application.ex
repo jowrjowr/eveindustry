@@ -9,8 +9,8 @@ defmodule EveIndustry.Application do
     children = [
       # data-specific caches
       Supervisor.child_spec({Cachex, name: :adjusted_price}, id: :adjusted_price),
-      Supervisor.child_spec({Cachex, name: :weighted_sell_price}, id: :weighted_sell_price),
-      Supervisor.child_spec({Cachex, name: :weighted_buy_price}, id: :weighted_buy_price),
+      Supervisor.child_spec({Cachex, name: :min_sell_price}, id: :min_sell_price),
+      Supervisor.child_spec({Cachex, name: :max_buy_price}, id: :max_buy_price),
       EveIndustry.Repo,
       EveIndustry.Scheduled.PriceUpdater,
       {Phoenix.PubSub, name: EveIndustry.PubSub},

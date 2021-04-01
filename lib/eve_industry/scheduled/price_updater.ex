@@ -26,8 +26,10 @@ defmodule EveIndustry.Scheduled.PriceUpdater do
   defp get_price() do
     EveIndustry.Prices.process_adjusted_prices()
 
-    region = 10000012
-    EveIndustry.Prices.process_esi_prices(region)
+    # forge 10000002
+    # domain 10000043
+    # curse 10000012
+    EveIndustry.Prices.process_esi_prices(10000002)
 
     :ok
   end

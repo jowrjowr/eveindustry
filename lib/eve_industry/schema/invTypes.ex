@@ -5,7 +5,6 @@ defmodule EveIndustry.Schema.InvTypes do
   schema "invTypes" do
     field :groupID, :integer
     field :typeName, :string
-    field :description, :string
     field :portionSize, :integer
     field :basePrice, :decimal
     field :marketGroupID, :integer

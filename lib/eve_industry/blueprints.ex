@@ -19,7 +19,7 @@ defmodule EveIndustry.Blueprints do
     # first, fetch all blueprint typeids that belong to these groups
 
     query =
-      from(r in EveIndustry.Schema.Blueprints,
+      from(r in EveIndustry.Schema.Derived.Blueprints,
         where: r.marketGroupID in ^market_groups and r.published == true,
         preload: [
           :materials,
@@ -36,7 +36,7 @@ defmodule EveIndustry.Blueprints do
   def details(type_id) do
     # a single blueprint
     query =
-      from(r in EveIndustry.Schema.Blueprints,
+      from(r in EveIndustry.Schema.Derived.Blueprints,
         where: r.typeID == ^type_id,
         preload: [
           :materials,

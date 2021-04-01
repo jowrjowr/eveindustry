@@ -1,11 +1,10 @@
-defmodule EveIndustry.Schema.Blueprints do
+defmodule EveIndustry.Schema.Derived.Blueprints do
   use Ecto.Schema
 
   @primary_key {:typeID, :integer, autogenerate: false}
   schema "invTypes" do
     field :groupID, :integer
     field :typeName, :string
-    field :description, :string
     field :portionSize, :integer
     field :basePrice, :decimal
     field :marketGroupID, :integer

@@ -1,11 +1,11 @@
 defmodule EveIndustry.Prices do
-  import Numerix.Statistics, only: [weighted_mean: 2]
+  require Logger
 
   def fetch(type_id) do
     %{
       adjusted_price: Cachex.get!(:adjusted_price, type_id),
-      weighted_sell_price: Cachex.get!(:weighted_sell_price, type_id),
-      weighted_buy_price: Cachex.get!(:weighted_buy_price, type_id)
+      min_sell_price: Cachex.get!(:min_sell_price, type_id),
+      max_buy_price: Cachex.get!(:max_buy_price, type_id)
     }
   end
 
@@ -25,15 +25,32 @@ defmodule EveIndustry.Prices do
   end
 
   def process_esi_prices(region) do
-    # forge 10000002
-    # domain 10000043
 
     data = fetch_market_prices(region)
+
+    amount_of_data = length(data)
+    Logger.debug("ESI market records in region #{region}: #{amount_of_data}")
 
     type_ids =
       data
       |> Enum.reduce([], fn item, acc -> [ item[:type_id] ] ++ acc end)
       |> Enum.uniq()
+
+    distinct_type_ids = length(type_ids)
+    # recompile(); EveIndustry.Prices.process_esi_prices(10000002)
+    Logger.debug("ESI market distinct types on market in region #{region}: #{distinct_type_ids}")
+
+    # do a little pre-processing to shave off data
+
+    order_key_filter = [
+      :duration, :issued, :location_id,
+      :min_volume, :order_id, :system_id,
+      :volume_total
+    ]
+
+    data =
+      data
+      |> Enum.reduce([], fn item, acc -> [Map.drop(item, order_key_filter)] ++ acc end)
 
     prices =
       type_ids
@@ -44,8 +61,8 @@ defmodule EveIndustry.Prices do
     for type_id <- type_ids do
       data = prices[type_id]
 
-      Cachex.put(:weighted_sell_price, type_id, data[:weighted_mean_sell])
-      Cachex.put(:weighted_buy_price, type_id, data[:weighted_mean_buy])
+      Cachex.put(:min_sell_price, type_id, data[:min_sell_price])
+      Cachex.put(:max_buy_price, type_id, data[:max_buy_price])
 
     end
 
@@ -54,6 +71,8 @@ defmodule EveIndustry.Prices do
   end
 
   def calculate_price(type_id, data) do
+
+    data = Enum.filter(data, fn item -> item[:type_id] == type_id end)
 
     # example of ESI data processed:
     #
@@ -72,42 +91,46 @@ defmodule EveIndustry.Prices do
     #   volume_total: 1410
     # }
 
-    sell_data =
-      data
-      |> Enum.filter(fn item -> item[:is_buy_order] == false end)
-      |> Enum.filter(fn item -> item[:type_id] == type_id end)
-
-    buy_data =
-      data
-      |> Enum.filter(fn item -> item[:is_buy_order] == true end)
-      |> Enum.filter(fn item -> item[:type_id] == type_id end)
-
     # the lengths of these lists is the same so i can split the work
 
-    sell_price = weighted_mean(
-      Enum.reduce(sell_data, [], fn item, acc -> acc ++ [item[:price]] end),
-      Enum.reduce(sell_data, [], fn item, acc -> acc ++ [item[:volume_remain]] end)
-    )
+    sell_prices =
+      data
+      |> Enum.filter(fn item -> item[:is_buy_order] == false end)
+      |> Enum.reduce([], fn item, acc -> [item[:price]] ++ acc end)
+      |> Enum.sort(&(&1 <= &2))
 
-    buy_price = weighted_mean(
-      Enum.reduce(buy_data, [], fn item, acc -> acc ++ [item[:price]] end),
-      Enum.reduce(buy_data, [], fn item, acc -> acc ++ [item[:volume_remain]] end)
-    )
+    sell_price =
+      case sell_prices do
+        [] -> nil
+        _ -> hd(sell_prices)
+      end
+
+    buy_prices =
+      data
+      |> Enum.filter(fn item -> item[:is_buy_order] == true end)
+      |> Enum.reduce([], fn item, acc -> [item[:price]] ++ acc end)
+      |> Enum.sort(&(&1 >= &2))
+
+    buy_price =
+      case buy_prices do
+        [] -> nil
+        _ -> hd(buy_prices)
+      end
 
     %{
       type_id: type_id,
-      weighted_mean_sell: sell_price,
-      weighted_mean_buy: buy_price
+      min_sell_price: sell_price,
+      max_buy_price: buy_price
     }
 
   end
 
-  def fetch_market_prices(region \\ 10000002, current_page \\ 1, acc \\ []) do
+  def fetch_market_prices(region \\ 10000002) do
 
     # fetch the raw price market data from ESI directly
     # can take awhile at hundreds of pages
 
-    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/?page=#{current_page}"
+    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/?page=1"
 
     {:ok, response} = Mojito.request(method: :get, url: esi_url)
 
@@ -116,12 +139,35 @@ defmodule EveIndustry.Prices do
       |> Mojito.Headers.get("x-pages")
       |> String.to_integer()
 
-    result = Jason.decode!(response.body, keys: :atoms)
 
-    if current_page == total_pages do
-      acc ++ result
-    else
-      fetch_market_prices(region, current_page + 1, acc ++ result)
-    end
+    Logger.debug("Total ESI market pages in region #{region}: #{total_pages}")
+    first_page = Jason.decode!(response.body, keys: :atoms)
+
+    stream = Task.async_stream(
+      2..total_pages,
+      fn page -> fetch_additional_market_pages(region, page) end,
+      max_concurrency: 50
+    )
+
+    rest_of_data =
+      stream
+      |> Enum.reduce([], fn {:ok, data}, acc -> acc ++ data end)
+
+    first_page ++ rest_of_data
+  end
+
+  def fetch_additional_market_pages(region, page) do
+
+    # fetch the raw price market data from ESI directly
+    # can take awhile at hundreds of pages
+
+    Logger.debug("Fetching ESI market page #{page}")
+
+    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/?page=#{page}"
+
+    {:ok, response} = Mojito.request(method: :get, url: esi_url)
+
+    Jason.decode!(response.body, keys: :atoms)
+
   end
 end

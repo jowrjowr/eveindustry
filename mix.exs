@@ -39,6 +39,7 @@ defmodule EveIndustry.MixProject do
       {:floki, ">= 0.27.0", only: :test},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
+      {:math, "~> 0.6.0"},
       {:mojito, "~> 0.7.7"},
       {:numerix, "~> 0.6"},
       {:phoenix, "~> 1.5.8"},
