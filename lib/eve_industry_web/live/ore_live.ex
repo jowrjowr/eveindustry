@@ -13,12 +13,6 @@ defmodule EveIndustryWeb.OreLive do
   @impl true
   def handle_event(_event, %{"config" => config}, socket) do
 
-    show_profitable =
-      case config["show_profitable"] do
-        "true" -> true
-        _ -> false
-      end
-
     data =
       EveIndustry.Ore.compressed(
         String.to_atom(config["security"]),
@@ -27,13 +21,25 @@ defmodule EveIndustryWeb.OreLive do
         String.to_atom(config["structure"])
       )
 
-    # filter for profitability
+    # UI selected filters
+
+    show_profitable =
+      case config["show_profitable"] do
+        "true" -> true
+        _ -> false
+      end
+
+    mineral =
+      case config["mineral"] do
+        "all" -> "all"
+        mineral -> String.to_integer(mineral)
+      end
 
     data =
       data
       |> Enum.filter(fn {_, item} -> item[:profitable] == show_profitable end)
+      |> Enum.filter(fn {_, item} -> Enum.member?(item[:yield_types], mineral) || mineral == "all" end)
       |> Map.new()
-
 
     keys = Map.keys(data)
 
@@ -47,6 +53,21 @@ defmodule EveIndustryWeb.OreLive do
       nil -> 0
       %{amount: amount} -> Float.round(amount, 2)
     end
+
+  end
+
+  defp select_mineral() do
+    [
+      "All": "all",
+      "Tritanium": 34,
+      "Pyerite": 35,
+      "Isogen": 37,
+      "Mexallon": 36,
+      "Nocxium": 38,
+      "Zydrine": 39,
+      "Megacyte": 40,
+      "Morphite": 11399
+    ]
 
   end
 

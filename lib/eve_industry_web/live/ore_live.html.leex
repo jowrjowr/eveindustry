@@ -12,6 +12,8 @@
         <br>
         Structure Type: <%= select(f, :structure, select_structure()) %>
         <br>
+        Select Mineral: <%= select(f, :mineral, select_mineral()) %>
+        <br>
         Show Only Profitable: <%= select(f, :show_profitable, ["No": false, "Yes": true]) %>
 
     </form>
