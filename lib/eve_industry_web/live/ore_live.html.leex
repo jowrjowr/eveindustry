@@ -1,0 +1,62 @@
+<h2>Ore reprocessing</h2>
+
+<div class="configuration">
+<br>Configuration</br>
+    <%= f = form_for :config, "#", [phx_change: :select] %>
+        <br>
+        System Security Level: <%= select(f, :security, select_security()) %>
+        <br>
+        Structure Reprocessing Rig: <%= select(f, :rig, select_rig()) %>
+        <br>
+        Refining Implant: <%= select(f, :implant, select_implant()) %>
+        <br>
+        Structure Type: <%= select(f, :structure, select_structure()) %>
+        <br>
+        Show Only Profitable: <%= select(f, :show_profitable, ["No": false, "Yes": true]) %>
+
+    </form>
+</div>
+<br>
+
+<div class="refine">
+    <table>
+    <thead>
+        <tr>
+            <th>Compressed Ore</th>
+            <th>unit value</th>
+            <th>sell margin</th>
+            <th>sell price</th>
+            <th>buy margin</th>
+            <th>buy price</th>
+            <th>Tritanium</th>
+            <th>Pyerite</th>
+            <th>Isogen</th>
+            <th>Mexallon</th>
+            <th>Nocxium</th>
+            <th>Zydrine</th>
+            <th>Megacyte</th>
+            <th>Morphite</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- @keys do %>
+        <tr>
+            <td><%= trim_compressed(@data[type_id].name) %></td>
+            <td><%= format_number(@data[type_id].unit_value) %></td>
+            <td><%= format_percent(@data[type_id].sell_margin) %></td>
+            <td><%= format_number(@data[type_id].sell_price) %></td>
+            <td><%= format_percent(@data[type_id].buy_margin) %></td>
+            <td><%= format_number(@data[type_id].buy_price) %></td>
+            <td><%= fetch_yield(@data[type_id], 34)%></td>
+            <td><%= fetch_yield(@data[type_id], 35)%></td>
+            <td><%= fetch_yield(@data[type_id], 37)%></td>
+            <td><%= fetch_yield(@data[type_id], 36)%></td>
+            <td><%= fetch_yield(@data[type_id], 38)%></td>
+            <td><%= fetch_yield(@data[type_id], 39)%></td>
+            <td><%= fetch_yield(@data[type_id], 40)%></td>
+            <td><%= fetch_yield(@data[type_id], 11399)%></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>

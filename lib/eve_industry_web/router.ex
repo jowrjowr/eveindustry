@@ -18,6 +18,7 @@ defmodule EveIndustryWeb.Router do
     pipe_through :browser
 
     live "/", PageLive, :index
+    live "/ore", OreLive
     live "/reactions", ReactionsLive
   end
 

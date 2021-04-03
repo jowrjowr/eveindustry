@@ -2,12 +2,15 @@ defmodule EveIndustry.Ore do
   import Ecto.Query, only: [from: 2]
   require Logger
 
-  def compressed(security \\ :lowsec, implant \\ true, rig \\ :t2, structure \\ :athanor) do
+  def compressed(security \\ :lowsec, implant \\ :four_percent, rig \\ :t2, structure \\ :athanor) do
 
     # easier to hardcode all the fucking compressed ore type ids
 
-    # naughty list. not ore.
-    excluded = [41139, 41144, 47450]
+    # exclude this stuff
+    not_ore = [41139, 41144, 47450]
+    ice_ores = Enum.to_list(28433..28444)
+
+    excluded = not_ore ++ ice_ores
 
     query =
       from(r in EveIndustry.Schema.Derived.Reprocessing,
@@ -29,7 +32,7 @@ defmodule EveIndustry.Ore do
       |> Enum.reduce([], fn item, acc -> [ item.typeID ] ++ acc end)
       |> Map.new(fn type_id -> {
         type_id,
-        calculate_price(
+        calculate_prices(
           type_id,
           Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
           bonuses(implant, structure, security, rig)
@@ -41,16 +44,16 @@ defmodule EveIndustry.Ore do
   end
 
 
-  defp calculate_price(type_id, data, refine_fraction) do
+  defp calculate_prices(type_id, data, refine_fraction) do
     # reduce down the SDE spew to something a little more managable:
     # [{material, quantity}, ...]
 
+    data = hd(data)
+
     yield =
       data
-      |> hd()
       |> Map.from_struct()
       |> Map.get(:reprocessing)
-      |> IO.inspect()
       |> Enum.reduce([], fn item, acc ->
         acc ++ [{item.materialTypeID, item.quantity * refine_fraction}]
       end)
@@ -60,6 +63,7 @@ defmodule EveIndustry.Ore do
       |> Enum.reduce(0, fn {type_id, amount}, acc ->
         acc + Cachex.get!(:min_sell_price, type_id) * amount
       end)
+      |> Float.round(2)
 
     yield =
       yield
@@ -67,11 +71,43 @@ defmodule EveIndustry.Ore do
 
     yield_types = Map.keys(yield)
 
+    sell_price =
+      case Cachex.get!(:min_sell_price, type_id) do
+        nil -> 0
+        x -> Float.round(x, 2)
+      end
+
+    buy_price =
+      case Cachex.get!(:max_buy_price, type_id) do
+        nil -> 0
+        x -> Float.round(x, 2)
+      end
+
+
+    sell_margin =
+      case sell_price do
+        0 -> 0
+        _ -> Float.round(unit_value / sell_price, 4)
+      end
+
+    buy_margin =
+      case buy_price do
+        0 -> 0
+        _ -> Float.round(unit_value / buy_price, 4)
+      end
+
+    profitable = sell_margin > 1 || buy_margin > 1
+
     %{
       :unit_value => unit_value,
-      :min_sell_value => Cachex.get!(:min_sell_price, type_id),
+      :sell_price => sell_price,
+      :buy_price => buy_price,
+      :sell_margin => sell_margin,
+      :buy_margin => buy_margin,
       :yield => yield,
-      :yield_types => yield_types
+      :yield_types => yield_types,
+      :name => data.typeName,
+      :profitable => profitable
     }
 
   end
@@ -117,6 +153,7 @@ defmodule EveIndustry.Ore do
     # the hull bonus, nothing else
 
     case structure do
+      :station -> 1
       :athanor -> 1.02
       :tatara -> 1.04
     end
@@ -125,8 +162,8 @@ defmodule EveIndustry.Ore do
   defp implant_bonus(implant) do
     # only suckers use the 1 or 2% implants
     case implant do
-      true -> 1.04
-      false -> 1
+      :four_percent -> 1.04
+      _ -> 1
     end
   end
 
