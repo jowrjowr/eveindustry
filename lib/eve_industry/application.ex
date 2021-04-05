@@ -11,6 +11,8 @@ defmodule EveIndustry.Application do
       Supervisor.child_spec({Cachex, name: :adjusted_price}, id: :adjusted_price),
       Supervisor.child_spec({Cachex, name: :min_sell_price}, id: :min_sell_price),
       Supervisor.child_spec({Cachex, name: :max_buy_price}, id: :max_buy_price),
+      Supervisor.child_spec({Cachex, name: :reaction_cost_index}, id: :reaction_cost_index),
+      Supervisor.child_spec({Cachex, name: :manufacturing_cost_index}, id: :manufacturing_cost_index),
       EveIndustry.Repo,
       EveIndustry.Scheduled.PriceUpdater,
       {Phoenix.PubSub, name: EveIndustry.PubSub},

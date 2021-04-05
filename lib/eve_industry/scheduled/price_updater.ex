@@ -24,6 +24,7 @@ defmodule EveIndustry.Scheduled.PriceUpdater do
   end
 
   defp get_price() do
+    EveIndustry.Prices.process_cost_indices()
     EveIndustry.Prices.process_adjusted_prices()
 
     # forge 10000002

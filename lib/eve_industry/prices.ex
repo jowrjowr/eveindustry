@@ -9,6 +9,25 @@ defmodule EveIndustry.Prices do
     }
   end
 
+  def process_cost_indices() do
+    # just shove the blob into ETS
+    esi_url = "https://esi.evetech.net/latest/industry/systems"
+
+    {:ok, response} = Mojito.request(method: :get, url: esi_url, opts: [timeout: 50000])
+
+    result = Jason.decode!(response.body, keys: :atoms)
+
+    for %{solar_system_id: solar_system_id, cost_indices: cost_indices} <- result do
+      cost_indices =
+        for %{activity: activity, cost_index: cost_index} <- cost_indices, into: %{}, do: {activity, cost_index}
+
+      Cachex.put(:manufacturing_cost_index, solar_system_id, cost_indices["manufacturing"])
+      Cachex.put(:reaction_cost_index, solar_system_id, cost_indices["reaction"])
+    end
+
+    :ok
+
+  end
   def process_adjusted_prices() do
     # ccp baseprice
 

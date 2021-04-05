@@ -16,5 +16,9 @@ defmodule EveIndustry.Schema.Derived.Blueprints do
     has_one :products, EveIndustry.Schema.IndustryActivityProducts,
       references: :typeID,
       foreign_key: :typeID
+
+    has_one :time, EveIndustry.Schema.IndustryActivity,
+      references: :typeID,
+      foreign_key: :typeID
   end
 end

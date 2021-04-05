@@ -1,18 +1,229 @@
 <h2>Reactions</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>TypeID</th>
-    </tr>
-  </thead>
-  <tbody id="items">
-    <%= for item <- @items do %>
-      <tr id="item-<%= item.typeID %>">
-        <td><%= item.products.name.typeName %></td>
-        <td><%= item.typeID %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<div class="configuration">
+<br>Configuration</br>
+    <%= f = form_for :config, "#", [phx_change: :select] %>
+        <br>
+        System Security Level: <%= select(f, :security, select_security()) %>
+        <br>
+        Reaction Rig: <%= select(f, :rig, select_reaction_rig()) %>
+        <br>
+        Reaction structure: <%= select(f, :structure, select_reaction_structure()) %>
+        <br>
+    </form>
+</div>
+<br>
+
+<h3>Intermediary</h3>
+<div class="intermediary">
+    <table>
+    <thead>
+        <tr>
+            <th>Reaction</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@intermediary) do %>
+        <tr>
+            <td><%= @intermediary[type_id].products.name %></td>
+            <td><%= reaction_fuel(@intermediary[type_id]).name %></td>
+            <td><%= reaction_fuel(@intermediary[type_id]).quantity %></td>
+            <td><%= reaction_inputs(@intermediary[type_id], 0).name %></td>
+            <td><%= reaction_inputs(@intermediary[type_id], 0).quantity %></td>
+            <td><%= reaction_inputs(@intermediary[type_id], 1).name %></td>
+            <td><%= reaction_inputs(@intermediary[type_id], 1).quantity %></td>
+            <td><%= format_number(@intermediary[type_id].products.quantity) %></td>
+            <td><%= format_number(@intermediary[type_id].build_from_market_value) %></td>
+            <td><%= format_number(@intermediary[type_id].products.sell_price) %></td>
+            <td><%= format_number(@intermediary[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Advanced</h3>
+<div class="advanced">
+    <table>
+    <thead>
+        <tr>
+            <th>Reaction</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Material #3</th>
+            <th>Quantity</th>
+            <th>Material #4</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@advanced) do %>
+        <tr>
+            <td><%= @advanced[type_id].products.name %></td>
+            <td><%= reaction_fuel(@advanced[type_id]).name %></td>
+            <td><%= reaction_fuel(@advanced[type_id]).quantity %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 0).name %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 0).quantity %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 1).name %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 1).quantity %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 2).name %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 2).quantity %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 3).name %></td>
+            <td><%= reaction_inputs(@advanced[type_id], 3).quantity %></td>
+            <td><%= format_number(@advanced[type_id].products.quantity) %></td>
+            <td><%= format_number(@advanced[type_id].build_from_market_value) %></td>
+            <td><%= format_number(@advanced[type_id].products.sell_price) %></td>
+            <td><%= format_number(@advanced[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Gas Phase</h3>
+<div class="gas-phase">
+    <table>
+    <thead>
+        <tr>
+            <th>Reaction</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Material #3</th>
+            <th>Quantity</th>
+            <th>Material #4</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@gas_phase) do %>
+        <tr>
+            <td><%= @gas_phase[type_id].products.name %></td>
+            <td><%= reaction_fuel(@gas_phase[type_id]).name %></td>
+            <td><%= reaction_fuel(@gas_phase[type_id]).quantity %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 0).name %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 0).quantity %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 1).name %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 1).quantity %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 2).name %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 2).quantity %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 3).name %></td>
+            <td><%= reaction_inputs(@gas_phase[type_id], 3).quantity %></td>
+            <td><%= format_number(@gas_phase[type_id].products.quantity) %></td>
+            <td><%= format_number(@gas_phase[type_id].build_from_market_value) %></td>
+            <td><%= format_number(@gas_phase[type_id].products.sell_price) %></td>
+            <td><%= format_number(@gas_phase[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Polymer</h3>
+<div class="polymer">
+    <table>
+    <thead>
+        <tr>
+            <th>Reaction</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Material #3</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@polymer) do %>
+        <tr>
+            <td><%= @polymer[type_id].products.name %></td>
+            <td><%= reaction_fuel(@polymer[type_id]).name %></td>
+            <td><%= reaction_fuel(@polymer[type_id]).quantity %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 0).name %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 0).quantity %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 1).name %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 1).quantity %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 2).name %></td>
+            <td><%= reaction_inputs(@polymer[type_id], 2).quantity %></td>
+            <td><%= format_number(@polymer[type_id].products.quantity) %></td>
+            <td><%= format_number(@polymer[type_id].build_from_market_value) %></td>
+            <td><%= format_number(@polymer[type_id].products.sell_price) %></td>
+            <td><%= format_number(@polymer[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Booster</h3>
+<div class="booster">
+    <table>
+    <thead>
+        <tr>
+            <th>Pure Booster</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Material #3</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@booster) do %>
+        <tr>
+            <td><%= trim_booster_name(@booster[type_id].products.name) %></td>
+            <td><%= reaction_fuel(@booster[type_id]).name %></td>
+            <td><%= reaction_fuel(@booster[type_id]).quantity %></td>
+            <td><%= reaction_inputs(@booster[type_id], 0).name %></td>
+            <td><%= reaction_inputs(@booster[type_id], 0).quantity %></td>
+            <td><%= reaction_inputs(@booster[type_id], 1).name %></td>
+            <td><%= reaction_inputs(@booster[type_id], 1).quantity %></td>
+            <td><%= reaction_inputs(@booster[type_id], 2).name %></td>
+            <td><%= reaction_inputs(@booster[type_id], 2).quantity %></td>
+            <td><%= format_number(@booster[type_id].products.quantity) %></td>
+            <td><%= format_number(@booster[type_id].build_from_market_value) %></td>
+            <td><%= format_number(@booster[type_id].products.sell_price) %></td>
+            <td><%= format_number(@booster[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
