@@ -5,9 +5,7 @@ defmodule EveIndustryWeb.OreLive do
   def mount(_params, _session, socket) do
 
     data = EveIndustry.Ore.compressed(:lowsec, :four_percent, :t2, :athanor)
-    keys = Map.keys(data)
-
-    {:ok, assign(socket, keys: keys, data: data)}
+    {:ok, assign(socket, config: %{}, data: data)}
   end
 
   @impl true
@@ -41,9 +39,7 @@ defmodule EveIndustryWeb.OreLive do
       |> Enum.filter(fn {_, item} -> Enum.member?(item[:yield_types], mineral) || mineral == "all" end)
       |> Map.new()
 
-    keys = Map.keys(data)
-
-    {:noreply, assign(socket, keys: keys, data: data)}
+    {:noreply, assign(socket, config: config, data: data)}
 
   end
 

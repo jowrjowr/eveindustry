@@ -4,17 +4,17 @@
 <br>Configuration</br>
     <%= f = form_for :config, "#", [phx_change: :select] %>
         <br>
-        System Security Level: <%= select(f, :security, select_security()) %>
+        System Security Level: <%= select(f, :security, select_security(), selected: @config["security"]) %>
         <br>
-        Structure Reprocessing Rig: <%= select(f, :rig, select_rig()) %>
+        Structure Reprocessing Rig: <%= select(f, :rig, select_rig(), selected: @config["rig"]) %>
         <br>
-        Refining Implant: <%= select(f, :implant, select_implant()) %>
+        Refining Implant: <%= select(f, :implant, select_implant(), selected: @config["implant"]) %>
         <br>
-        Structure Type: <%= select(f, :structure, select_structure()) %>
+        Structure Type: <%= select(f, :structure, select_structure(), selected: @config["structure"]) %>
         <br>
-        Select Mineral: <%= select(f, :mineral, select_mineral()) %>
+        Select Mineral: <%= select(f, :mineral, select_mineral(), selected: @config["mineral"]) %>
         <br>
-        Show Only Profitable: <%= select(f, :show_profitable, ["No": false, "Yes": true]) %>
+        Show Only Profitable: <%= select(f, :show_profitable, ["No": false, "Yes": true], selected: @config["show_profitable"]) %>
 
     </form>
 </div>
@@ -41,7 +41,7 @@
         </tr>
     </thead>
     <tbody id="items">
-        <%= for type_id <- @keys do %>
+        <%= for type_id <- Map.keys(@data) do %>
         <tr>
             <td><%= trim_compressed(@data[type_id].name) %></td>
             <td><%= format_number(@data[type_id].unit_value) %></td>
