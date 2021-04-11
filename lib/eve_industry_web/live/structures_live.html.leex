@@ -1,0 +1,39 @@
+<h2>Structure Production</h2>
+
+<div class="configuration">
+<br>Configuration</br>
+    <%= f = form_for :config, "#", [phx_change: :select] %>
+        <br>
+        System Security Level: <%= select(f, :security, select_security()) %>
+        <br>
+        Industry Rig: <%= select(f, :rig, select_rig()) %>
+        <br>
+        Industry structure: <%= select(f, :structure, select_industry_structure()) %>
+        <br>
+    </form>
+</div>
+<br>
+
+<h3>Structures</h3>
+<div class="items">
+    <table>
+    <thead>
+        <tr>
+            <th>Blueprint</th>
+            <th>Unit Build Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@structures) do %>
+        <tr>
+            <td><%= @structures[type_id].products.name %></td>
+            <td><%= format_number(@structures[type_id].unit_build_price) %></td>
+            <td><%= format_number(@structures[type_id].products.sell_price) %></td>
+            <td><%= format_number(@structures[type_id].products.buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>

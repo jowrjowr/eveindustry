@@ -20,6 +20,7 @@ defmodule EveIndustryWeb.Router do
     live "/", PageLive, :index
     live "/ore", OreLive
     live "/reactions", ReactionsLive
+    live "/structures", StructuresLive
   end
 
   # Other scopes may use custom stacks.

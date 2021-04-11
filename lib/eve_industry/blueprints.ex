@@ -21,11 +21,28 @@ defmodule EveIndustry.Blueprints do
 
   end
 
-  def details(type_id) do
-    # a single blueprint
+  def multiple(type_ids) do
+    # multiple blueprints
     query =
       from(r in EveIndustry.Schema.Derived.Blueprints,
-        where: r.typeID == ^type_id,
+        where: r.typeID in ^type_ids and r.published == true,
+        preload: [
+          :materials,
+          :products,
+          materials: [ :name ],
+          products: [ :name ]
+        ]
+      )
+
+    EveIndustry.Repo.all(query)
+
+  end
+
+  def single(type_id) do
+    # single blueprints
+    query =
+      from(r in EveIndustry.Schema.Derived.Blueprints,
+        where: r.typeID == ^type_id and r.published == true,
         preload: [
           :materials,
           :products,
@@ -38,8 +55,17 @@ defmodule EveIndustry.Blueprints do
 
   end
 
-  def bill_of_materials(type_id, blueprint_me, runs, bonus) do
-    # determine the list of materials needed to do one run of a given blueprint typeid
-    true
+  def blueprint_from_type(type_id) do
+    query =
+      from(r in EveIndustry.Schema.IndustryActivityProducts,
+        where: r.productTypeID == ^type_id,
+        select: r.typeID
+
+      )
+
+    EveIndustry.Repo.one(query)
+
   end
+
+
 end

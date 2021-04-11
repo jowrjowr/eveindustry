@@ -62,6 +62,15 @@ defmodule EveIndustryWeb.Live.Helpers do
     ]
   end
 
+  def select_industry_structure() do
+
+    [
+      "Azbel": :azbel,
+      "Raitaru": :raitaru,
+      "Sotiyo": :sotiyo
+    ]
+  end
+
   def select_refine_implant() do
 
     [
@@ -80,11 +89,11 @@ defmodule EveIndustryWeb.Live.Helpers do
     ]
   end
 
-  def select_reaction_rig() do
+  def select_rig() do
 
     [
       "T2": :t2,
-      "T1": :nullsec,
+      "T1": :t1,
       "None": nil
     ]
   end
