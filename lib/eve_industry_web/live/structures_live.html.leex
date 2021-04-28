@@ -20,19 +20,25 @@
     <thead>
         <tr>
             <th>Blueprint</th>
+            <th>Batches</th>
+            <th>Batch Size</th>
             <th>Unit Build Cost</th>
             <th>Sell Price</th>
             <th>Buy Price</th>
         </tr>
     </thead>
     <tbody id="items">
-        <%= for type_id <- Map.keys(@structures) do %>
+        <%= for type_id <- Map.keys(@data) do %>
+        <%= f = form_for :"#{type_id}", "#", [phx_change: :select] %>
         <tr>
-            <td><%= @structures[type_id].products.name %></td>
-            <td><%= format_number(@structures[type_id].unit_build_price) %></td>
-            <td><%= format_number(@structures[type_id].products.sell_price) %></td>
-            <td><%= format_number(@structures[type_id].products.buy_price) %></td>
+            <td><%= @data[type_id].products.name %></td>
+            <td><%= number_input f, :batches %></td>
+            <td>eeeee</td>
+            <td><%= format_number(@data[type_id].unit_build_price) %></td>
+            <td><%= format_number(@data[type_id].products.sell_price) %></td>
+            <td><%= format_number(@data[type_id].products.buy_price) %></td>
         </tr>
+        </form>
         <% end %>
     </tbody>
     </table>

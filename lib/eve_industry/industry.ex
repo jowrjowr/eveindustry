@@ -155,8 +155,6 @@ defmodule EveIndustry.Industry do
 
   end
 
-
-
   defp material_details(acc, material, %{
     job_type: job_type,
     batch_size: batch_size,
