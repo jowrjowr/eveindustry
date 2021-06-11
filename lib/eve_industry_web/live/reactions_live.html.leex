@@ -272,7 +272,6 @@
     <tbody id="items">
         <%= for type_id <- Map.keys(@booster) do %>
         <tr>
-            <td><%= trim_booster_name(@booster[type_id].products.name) %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= @booster[type_id].products.type_id %>/icon?size=32">
                 <%= trim_booster_name(@booster[type_id].products.name) %>
