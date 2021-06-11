@@ -15,15 +15,16 @@ defmodule EveIndustryWeb.Live.Helpers do
     result =
       materials
       |> Enum.filter(fn {type_id, %{group_id: group_id}} -> group_id == 1136 end)
-      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity}}, acc -> {name, quantity}  end)
+      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc -> {name, quantity, type_id}  end)
 
     case result do
       nil ->
-        %{name: nil, quantity: nil}
-      {name, quantity} ->
+        %{name: nil, quantity: nil, type_id: nil}
+      {name, quantity, type_id} ->
         %{
           name: trim_fuel(name),
-          quantity: format_number(quantity)
+          quantity: format_number(quantity),
+          type_id: type_id
         }
     end
 
@@ -34,12 +35,12 @@ defmodule EveIndustryWeb.Live.Helpers do
     result =
       materials
       |> Enum.filter(fn {type_id, %{group_id: group_id}} -> group_id != 1136 end)
-      |> Enum.reduce([], fn {_, %{name: name, quantity: quantity}}, acc -> acc ++ [{name, quantity}]  end)
+      |> Enum.reduce([], fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc -> acc ++ [{name, quantity, type_id}]  end)
       |> Enum.at(index)
 
     case result do
-      nil -> %{name: nil, quantity: nil}
-      {name, quantity} -> %{name: name, quantity: format_number(quantity)}
+      nil -> %{name: nil, quantity: nil, type_id: nil}
+      {name, quantity, type_id} -> %{name: name, quantity: format_number(quantity), type_id: type_id}
     end
 
   end
