@@ -100,7 +100,7 @@
             <td><%= reaction_fuel(@advanced[type_id]).quantity %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_inputs(@advanced[type_id], 0).type_id %>/icon?size=32">
-                <%= reaction_inputs(@advanced[type_id], 1).name %>
+                <%= reaction_inputs(@advanced[type_id], 0).name %>
             </td>
             <td><%= reaction_inputs(@advanced[type_id], 0).quantity %></td>
             <td>
@@ -164,7 +164,7 @@
             <td><%= reaction_fuel(@gas_phase[type_id]).quantity %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_inputs(@gas_phase[type_id], 0).type_id %>/icon?size=32">
-                <%= reaction_inputs(@gas_phase[type_id], 1).name %>
+                <%= reaction_inputs(@gas_phase[type_id], 0).name %>
             </td>
             <td><%= reaction_inputs(@gas_phase[type_id], 0).quantity %></td>
             <td>
@@ -226,7 +226,7 @@
             <td><%= reaction_fuel(@polymer[type_id]).quantity %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_inputs(@polymer[type_id], 0).type_id %>/icon?size=32">
-                <%= reaction_inputs(@polymer[type_id], 1).name %>
+                <%= reaction_inputs(@polymer[type_id], 0).name %>
             </td>
             <td><%= reaction_inputs(@polymer[type_id], 0).quantity %></td>
             <td>
