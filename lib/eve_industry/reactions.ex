@@ -1,4 +1,5 @@
 defmodule EveIndustry.Reactions do
+  import Ecto.Query, only: [from: 2]
   import EveIndustry.Formulas, only: [material_amount: 4]
 
   def calculate(batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
@@ -26,28 +27,146 @@ defmodule EveIndustry.Reactions do
     reactions_from_market =
       reaction_groups
       |> EveIndustry.Blueprints.by_groups()
-      |> Enum.filter(fn item -> String.contains?(item.typeName, "Unrefined") == false end)
       |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, me_bonus, te_bonus, batch_size)}] end)
       |> Map.new()
 
-    # need to feed this data back into itself so intermediary/advanced materials
+    # need to feed this data back into itself so intermediary/advanced/alchemy materials
     # can be priced using previously constructed products
 
     reactions =
       reactions_from_market
       |> Enum.reduce([], fn {type_id, data}, acc ->
-        industry_value = calculate_industry_prices(nil, type_id, reactions_from_market, batch_size)
-        map = Map.put(data, :build_from_industry_value, industry_value)
+        industry_value = calculate_industry_prices(type_id, reactions_from_market)
+        alchemy = alchemy(data.products.name)
+        alchemy_value = calculate_alchemy_price(alchemy, reactions_from_market)
+
+        alchemy_margin =
+          case alchemy_value do
+            0.0 -> 0.0
+            _ -> Float.round(data.build_from_market_value / alchemy_value, 2)
+          end
+        alchemy_profitable = alchemy_margin < 1
+
+        map =
+          data
+          |> Map.put(:build_from_industry_value, industry_value)
+          |> Map.put(:alchemy_margin, alchemy_margin)
+          |> Map.put(:alchemy_profitable, alchemy_profitable)
+          |> Map.put(:build_from_alchemy_value, alchemy_value)
         acc ++ [{type_id, map}]
       end)
+      |> Enum.filter(fn {_type_id, item} -> String.contains?(item.name, "Unrefined") == false end)
       |> Map.new()
 
     reactions
   end
 
-  defp calculate_industry_prices(0, _type_id, data, _batch_size), do: data
+  def alchemy(type_name) do
 
-  defp calculate_industry_prices(changes, type_id, data, batch_size) do
+    unrefined_type_name = "Unrefined #{type_name}"
+    query =
+      from(r in EveIndustry.Schema.Derived.Reprocessing,
+        where: r.published == true,
+        where: r.groupID == 428,
+        where: r.typeName == ^unrefined_type_name,
+        preload: [
+          :reprocessing,
+          reprocessing: [ :name ]
+        ]
+      )
+
+    EveIndustry.Repo.one(query)
+
+  end
+
+  defp calculate_alchemy_price(nil, _), do: 0.0
+
+  defp calculate_alchemy_price(%{typeID: alchemy_product_type_id}, reactions) do
+
+    # 46172 - ferrofluid reaction formula
+    # 46197 - unrefined ferrofluid reaction formula
+
+    # the idea is to directly compare alchemy against its counterpart using raw build costs
+
+
+    {_, alchemy_data} =
+      reactions
+      |> Enum.filter(fn {_type_id, data} -> data.products.type_id == alchemy_product_type_id end)
+      |> hd()
+
+    # there is always an alchemy product, but not always a goo product
+
+    alchemy_product =
+      alchemy_data.products.reprocessing.yield
+      |> alchemy_product_yield()
+
+    #...but not always a goo product
+
+    alchemy_goo_product =
+      alchemy_data.products.reprocessing.yield
+      |> alchemy_goo_yield()
+
+    alchemy_goo_value =
+      case alchemy_goo_product do
+        nil -> 0.0
+        _ -> EveIndustry.Prices.fetch(alchemy_goo_product[:type_id])[:min_sell_price] * alchemy_goo_product[:amount]
+      end
+
+    # the desired result is the unit value of the alchemy main product
+    # industry/market value are the same here.
+
+    ( alchemy_data[:build_from_market_value] - alchemy_goo_value ) / alchemy_product[:amount]
+
+  end
+
+  defp alchemy_product_yield(data) do
+    {_, result} =
+      data
+      |> Enum.filter(fn {_type_id, item} -> item.type_data.marketGroupID == 500 end)
+      |> hd()
+
+    result
+  end
+
+  defp alchemy_goo_yield([]), do: nil
+
+  defp alchemy_goo_yield(data) do
+    result =
+      data
+      |> Enum.filter(fn {_type_id, item} -> item.type_data.marketGroupID == 501 end)
+
+    case result do
+      [] -> nil
+      [{_, data}] -> data
+
+    end
+
+  end
+
+  def calculate_alchemy(batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
+
+    # the reaction group isn't exclusive to just alchemy, annoyingly
+
+    reaction_groups = [2403]
+
+    te_bonus = te_bonuses(security, rig, structure)
+    me_bonus = me_bonuses(security, rig)
+
+    # the alchemy product has to be melted. it in of itself is useless.
+
+    reactions =
+      reaction_groups
+      |> EveIndustry.Blueprints.by_groups()
+      |> Enum.filter(fn item -> String.contains?(item.typeName, "Unrefined") == true end)
+      |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, me_bonus, te_bonus, batch_size)}] end)
+      |> Map.new()
+
+    reactions
+  end
+
+#  defp calculate_industry_prices(_type_id, data), do: data
+
+  defp calculate_industry_prices(type_id, data) do
     # recursively cycle through the reaction blueprints to calculate the next level from previous
 
     # only recurse into these item groups for prices
@@ -134,9 +253,6 @@ defmodule EveIndustry.Reactions do
 
       end)
 
-
-
-
     # not every reaction (eg, drugs) has reaction stuff on the market
     # need to see if it even makes sense to calculate a unit value
 
@@ -155,6 +271,7 @@ defmodule EveIndustry.Reactions do
           end)
       end
 
+    reprocessing = EveIndustry.Ore.single_item(data.products.productTypeID)
 
     unit_value = unit_material_price + unit_tax
 
@@ -173,16 +290,24 @@ defmodule EveIndustry.Reactions do
     sell_margin =
       case sell_price do
         0 -> 0
-        _ -> Float.round(unit_value / sell_price, 4)
+        _ -> Float.round(sell_price / unit_value, 4) |> Float.round(2)
       end
 
     buy_margin =
       case buy_price do
         0 -> 0
-        _ -> Float.round(unit_value / buy_price, 4)
+        _ -> Float.round(buy_price / unit_value, 4) |> Float.round(2)
       end
 
-    profitable = sell_margin > 1 || buy_margin > 1
+    profitable = sell_margin < 1 || buy_margin < 1
+
+    reprocessing_margin =
+      case unit_value do
+        0 -> 0
+        _ -> Float.round(reprocessing[:unit_value] / unit_value, 4) |> Float.round(2)
+      end
+
+    profitable_to_reprocess = reprocessing_margin > 1
 
     products = %{
       type_id: data.products.productTypeID,
@@ -190,7 +315,10 @@ defmodule EveIndustry.Reactions do
       group_id: data.products.name.groupID,
       quantity: build_quantity,
       sell_price: sell_price,
+      sell_margin: sell_margin,
       buy_price: buy_price,
+      buy_margin: buy_margin,
+      reprocessing: reprocessing
     }
 
     %{
@@ -204,7 +332,9 @@ defmodule EveIndustry.Reactions do
       build_from_industry_value: unit_value,
       unit_tax: unit_tax,
       products: products,
-      profitable: profitable
+      profitable: profitable,
+      profitable_to_reprocess: profitable_to_reprocess,
+      reprocessing_margin: reprocessing_margin
     }
 
   end

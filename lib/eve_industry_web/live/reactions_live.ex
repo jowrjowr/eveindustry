@@ -16,7 +16,10 @@ defmodule EveIndustryWeb.ReactionsLive do
     # 427: raw goo
     # 1136: fuel blocks
 
-    batch_size = 100
+    # 7 days athanor: 88
+    # 7 days tatara: 125
+
+    batch_size = 88
     security = :lowsec
     rig = :t2
     structure = :athanor
@@ -40,9 +43,10 @@ defmodule EveIndustryWeb.ReactionsLive do
 
   defp reaction_group(group_id, batch_size, security, rig, structure) do
     calculate(batch_size, security, rig, structure)
-      |> Enum.filter(fn {type_id, item} ->
+      |> Enum.filter(fn {_type_id, item} ->
         item[:products][:group_id] == group_id
       end)
       |> Map.new()
   end
+
 end

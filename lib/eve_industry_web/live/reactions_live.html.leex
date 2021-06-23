@@ -30,6 +30,7 @@
             <th>Unit Cost</th>
             <th>Sell Price</th>
             <th>Buy Price</th>
+            <th>Alchemy Price</th>
         </tr>
     </thead>
     <tbody id="items">
@@ -56,8 +57,9 @@
             <td><%= reaction_inputs(@intermediary[type_id], 1).quantity %></td>
             <td><%= format_number(@intermediary[type_id].products.quantity) %></td>
             <td><%= format_number(@intermediary[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@intermediary[type_id].products.sell_price) %></td>
-            <td><%= format_number(@intermediary[type_id].products.buy_price) %></td>
+            <td><%= format_number(@intermediary[type_id].products.sell_price) %> (<%= @intermediary[type_id].products.sell_margin %>) </td>
+            <td><%= format_number(@intermediary[type_id].products.buy_price) %> (<%= @intermediary[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@intermediary[type_id].build_from_alchemy_value) %> (<%= @intermediary[type_id].alchemy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -120,8 +122,8 @@
             <td><%= reaction_inputs(@advanced[type_id], 3).quantity %></td>
             <td><%= format_number(@advanced[type_id].products.quantity) %></td>
             <td><%= format_number(@advanced[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@advanced[type_id].products.sell_price) %></td>
-            <td><%= format_number(@advanced[type_id].products.buy_price) %></td>
+            <td><%= format_number(@advanced[type_id].products.sell_price) %> (<%= @advanced[type_id].products.sell_margin %>) </td>
+            <td><%= format_number(@advanced[type_id].products.buy_price) %> (<%= @advanced[type_id].products.buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -184,8 +186,8 @@
             <td><%= reaction_inputs(@gas_phase[type_id], 3).quantity %></td>
             <td><%= format_number(@gas_phase[type_id].products.quantity) %></td>
             <td><%= format_number(@gas_phase[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@gas_phase[type_id].products.sell_price) %></td>
-            <td><%= format_number(@gas_phase[type_id].products.buy_price) %></td>
+            <td><%= format_number(@gas_phase[type_id].products.sell_price) %> (<%= @gas_phase[type_id].products.sell_margin %>) </td>
+            <td><%= format_number(@gas_phase[type_id].products.buy_price) %> (<%= @gas_phase[type_id].products.buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -241,8 +243,8 @@
             <td><%= reaction_inputs(@polymer[type_id], 2).quantity %></td>
             <td><%= format_number(@polymer[type_id].products.quantity) %></td>
             <td><%= format_number(@polymer[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@polymer[type_id].products.sell_price) %></td>
-            <td><%= format_number(@polymer[type_id].products.buy_price) %></td>
+            <td><%= format_number(@polymer[type_id].products.sell_price) %> (<%= @polymer[type_id].products.sell_margin %>) </td>
+            <td><%= format_number(@polymer[type_id].products.buy_price) %> (<%= @polymer[type_id].products.buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -283,7 +285,7 @@
             <td><%= reaction_fuel(@booster[type_id]).quantity %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_inputs(@booster[type_id], 0).type_id %>/icon?size=32">
-                <%= reaction_inputs(@booster[type_id], 1).name %>
+                <%= reaction_inputs(@booster[type_id], 0).name %>
             </td>
             <td><%= reaction_inputs(@booster[type_id], 0).quantity %></td>
             <td>
@@ -298,8 +300,8 @@
             <td><%= reaction_inputs(@booster[type_id], 2).quantity %></td>
             <td><%= format_number(@booster[type_id].products.quantity) %></td>
             <td><%= format_number(@booster[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@booster[type_id].products.sell_price) %></td>
-            <td><%= format_number(@booster[type_id].products.buy_price) %></td>
+            <td><%= format_number(@booster[type_id].products.sell_price) %> (<%= @booster[type_id].products.sell_margin %>) </td>
+            <td><%= format_number(@booster[type_id].products.buy_price) %> (<%= @booster[type_id].products.buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>

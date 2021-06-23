@@ -2,6 +2,63 @@ defmodule EveIndustry.Ore do
   import Ecto.Query, only: [from: 2]
   require Logger
 
+  def all_alchemy() do
+
+    query =
+      from(r in EveIndustry.Schema.Derived.Reprocessing,
+        where: r.published == true,
+        where: r.groupID == 428,
+        where: like(r.typeName, "Unrefined%"),
+        preload: [
+          :reprocessing,
+          reprocessing: [ :name ]
+        ]
+      )
+
+    alchemy = EveIndustry.Repo.all(query)
+
+    # scrapmetal only benefits from the implant and base reprocessing yield. no rigs affect it.
+
+    unrefined =
+      alchemy
+      |> Enum.reduce([], fn item, acc -> [ item.typeID ] ++ acc end)
+      |> Map.new(fn type_id -> {
+        type_id,
+        calculate_prices(
+          type_id,
+          Enum.filter(alchemy, fn item -> item.typeID == type_id end),
+          scrapmetal_bonuses()
+        )
+      }
+      end)
+
+    unrefined
+
+  end
+
+  def single_item(type_id) do
+
+    query =
+      from(r in EveIndustry.Schema.Derived.Reprocessing,
+        where: r.typeID == ^type_id,
+        preload: [
+          :reprocessing,
+          reprocessing: [ :name ]
+        ]
+      )
+
+    data = EveIndustry.Repo.all(query)
+
+    # scrapmetal only benefits from the implant and base reprocessing yield. no rigs affect it.
+
+    calculate_prices(
+      type_id,
+      data,
+      scrapmetal_bonuses()
+    )
+
+  end
+
   def compressed(security \\ :lowsec, implant \\ :four_percent, rig \\ :t2, structure \\ :athanor) do
 
     # easier to hardcode all the fucking compressed ore type ids
@@ -55,19 +112,24 @@ defmodule EveIndustry.Ore do
       |> Map.from_struct()
       |> Map.get(:reprocessing)
       |> Enum.reduce([], fn item, acc ->
-        acc ++ [{item.materialTypeID, item.quantity * refine_fraction}]
+        acc ++ [{item.materialTypeID, item.quantity * refine_fraction, item.name}]
       end)
 
     unit_value =
       yield
-      |> Enum.reduce(0, fn {type_id, amount}, acc ->
+      |> Enum.reduce(0, fn {type_id, amount, _}, acc ->
         acc + Cachex.get!(:min_sell_price, type_id) * amount
       end)
-      |> Float.round(2)
+
+    unit_value =
+      case unit_value do
+        0 -> 0.0
+        _ -> Float.round(unit_value, 2)
+      end
 
     yield =
       yield
-      |> Map.new(fn {type_id, amount} -> {type_id, %{ type_id: type_id, amount: amount} } end)
+      |> Map.new(fn {type_id, amount, type_data} -> {type_id, %{ type_id: type_id, amount: amount, type_data: type_data} } end)
 
     yield_types = Map.keys(yield)
 
@@ -110,6 +172,22 @@ defmodule EveIndustry.Ore do
       :profitable => profitable
     }
 
+  end
+
+  defp scrapmetal_bonuses() do
+    # calculate reprocessing bonuses
+
+    # the only case that gives more than 50% yield are legacy nullsec structures with legacy rigs.
+    # everything else is 50%
+
+    base_yield = 0.5
+
+    # hardcoded assumption of perfect skills
+    # scrapmetal processing only skill that helps
+
+    skills_bonus = 1.1
+
+    base_yield * skills_bonus
   end
 
   defp bonuses(implant, structure, security, rig) do
