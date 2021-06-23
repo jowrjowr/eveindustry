@@ -56,7 +56,7 @@ defmodule EveIndustry.Prices do
       |> Enum.uniq()
 
     distinct_type_ids = length(type_ids)
-    # recompile(); EveIndustry.Prices.process_esi_prices(10000002)
+
     Logger.debug("ESI market distinct types on market in region #{region}: #{distinct_type_ids}")
 
     # do a little pre-processing to shave off data

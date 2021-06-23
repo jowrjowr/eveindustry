@@ -36,4 +36,5 @@ npm-debug.log
 .vscode
 _build
 
-/priv/sde/*
+priv/sde
+eve.db
