@@ -1,83 +1,126 @@
 defmodule EveIndustry.Industry do
-  alias EveIndustry.Formulas
   alias EveIndustry.Blueprints
   alias EveIndustry.Bonuses
+  import EveIndustry.Formulas, only: [material_amount: 4]
 
-  def calculate(job_type, groups, blueprint_me, batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
+  def calculate(industry, blueprint_groups, batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
 
-    solar_system_id = 30002538
+    te_bonus = Bonuses.te(industry, security, rig, structure)
+    me_bonus = Bonuses.me(industry, security, rig, structure)
 
-    config = %{
-      solar_system_id: solar_system_id,
-      job_type: job_type,
-      blueprint_me: blueprint_me,
-      batch_size: batch_size,
-      security: security,
-      rig: rig,
-      structure: structure
-    }
-
-    groups
-    |> Blueprints.by_groups()
-    |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, config)}] end)
-    |> Map.new()
-
-  end
-
-  def calculate_single(job_type, type_id, blueprint_me, batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
-
-    solar_system_id = 30002538
-
-    config = %{
-      solar_system_id: solar_system_id,
-      job_type: job_type,
-      blueprint_me: blueprint_me,
-      batch_size: batch_size,
-      security: security,
-      rig: rig,
-      structure: structure
-    }
-
-    [ Blueprints.single(type_id) ]
-      |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, config)}] end)
+    industry_from_market =
+      blueprint_groups
+      |> Blueprints.by_groups()
+      |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, me_bonus, te_bonus, batch_size)}] end)
       |> Map.new()
 
+    # need to feed this data back into itself so multi-level blueprints can be priced using previously constructed products
+    # TODO: make this not look like shit.
+
+    industry =
+      industry_from_market
+      |> Enum.reduce([], fn {type_id, data}, acc ->
+        industry_value = calculate_industry_prices(type_id, industry_from_market)
+        map =
+          data
+          |> Map.put(:build_from_industry_value, industry_value)
+        acc ++ [{type_id, map}]
+      end)
+      |> Map.new()
+
+      industry
   end
 
+  def calculate_industry_prices(type_id, data) do
+    # recursively cycle through the blueprints to calculate the next level from previous
 
-  defp calculate_details(
-    data,
-    config = %{
-      job_type: job_type,
-      blueprint_me: blueprint_me,
-      batch_size: batch_size,
-      security: security,
-      rig: rig,
-      structure: structure,
-      solar_system_id: solar_system_id
-    }
-    ) do
+    # only recurse into these item groups for prices
+    # will add to as necessary
+
+    industry_price_groups = [712, 428]
+
+    # make sure all the data needed to calculate exists
+
+    industry_unit_value =
+      data
+      |> Map.get(type_id)
+      |> Map.get(:materials)
+      |> Enum.reduce(0, fn {material_type_id, %{group_id: group_id}}, acc ->
+        value =
+          case Enum.member?(industry_price_groups, group_id) do
+
+            true ->
+              {_, result} =
+                data
+                |> Enum.filter(fn {_, item} -> item[:products][:type_id] == material_type_id end)
+                |> hd()
+              Map.get(result, :build_from_industry_value)
+
+            false ->
+              Cachex.get!(:min_sell_price, material_type_id)
+          end
+
+        case {value, acc} do
+          {nil, _} -> nil
+          {_, nil} -> nil
+          {_, _} -> acc + value
+        end
+
+      end)
+
+    industry_unit_value =
+      case industry_unit_value do
+        nil -> 0
+        _ -> industry_unit_value
+      end
+
+    case data[type_id][:products][:group_id] do
+      428 -> nil
+      _ -> industry_unit_value / data[type_id][:products][:quantity]
+    end
+
+  end
+
+  def calculate_details(data, me_bonus, te_bonus, batch_size) do
+
+    # hardcode for now
+
+    solar_system_id = 30002538
 
     materials =
       data.materials
-      |> Enum.reduce([], fn material, acc -> material_details(acc, material, config) end)
+      |> Enum.reduce([], fn material, acc ->
+        result = %{
+          type_id: material.materialTypeID,
+          group_id: material.name.groupID,
+          name: material.name.typeName,
+          quantity: material_amount(0, me_bonus, material.quantity, batch_size)
+        }
+        acc ++ [{ material.materialTypeID, result}]
+      end)
       |> Map.new()
 
+    build_time = batch_size * data.time.time * te_bonus
     build_quantity = data.products.quantity * batch_size
 
-    cost_index = Formulas.cost_index(job_type, solar_system_id)
+    unit_tax =
+      data.materials
+      |> Enum.reduce(0, fn material, acc ->
+        tax_quantity = material_amount(0, 0, material.quantity, batch_size)
+        cost_index = Cachex.get!(:reaction_cost_index, solar_system_id)
 
-    batch_tax =
-      materials
-      |> Enum.reduce(0, fn {type_id, materials}, acc ->
-        taxed_quantity = materials[:tax_quantity]
-        adjusted_price = materials[:adjusted_price]
+        adjusted_price =
+          case Cachex.get!(:adjusted_price, material.materialTypeID) do
+            nil -> 0
+            price -> price
+          end
 
-        acc + taxed_quantity * adjusted_price * cost_index
+        acc + tax_quantity * adjusted_price * cost_index / build_quantity
+
       end)
 
-    unit_tax = batch_tax / build_quantity
-
+    # not every reaction (eg, drugs) has reaction stuff on the market
+    # need to see if it even makes sense to calculate a unit value
 
     calculate_unit_value =
       Enum.reduce(materials, true, fn {type_id, _materials}, acc ->
@@ -93,17 +136,10 @@ defmodule EveIndustry.Industry do
             acc + Cachex.get!(:min_sell_price, type_id) * quantity / build_quantity
           end)
       end
-    unit_market_price = unit_material_price + unit_tax
 
-    unit_build_price =
-      materials
-      |> Enum.reduce(0, fn {type_id, materials}, acc ->
-        quantity = materials[:quantity]
-        component_build_price = materials[:unit_build_price]
+    reprocessing = EveIndustry.Ore.single_item(data.products.productTypeID)
 
-        acc + component_build_price * quantity / build_quantity
-      end)
-    unit_build_price = unit_build_price + unit_tax
+    unit_value = unit_material_price + unit_tax
 
     sell_price =
       case Cachex.get!(:min_sell_price, data.products.productTypeID) do
@@ -120,16 +156,24 @@ defmodule EveIndustry.Industry do
     sell_margin =
       case sell_price do
         0 -> 0
-        _ -> Float.round(unit_market_price / sell_price, 4)
+        _ -> Float.round(sell_price / unit_value, 4) |> Float.round(2)
       end
 
     buy_margin =
       case buy_price do
         0 -> 0
-        _ -> Float.round(unit_market_price / buy_price, 4)
+        _ -> Float.round(buy_price / unit_value, 4) |> Float.round(2)
       end
 
-    profitable = sell_margin > 1 || buy_margin > 1
+    profitable = sell_margin < 1 || buy_margin < 1
+
+    reprocessing_margin =
+      case unit_value do
+        0 -> 0
+        _ -> Float.round(reprocessing[:unit_value] / unit_value, 4) |> Float.round(2)
+      end
+
+    profitable_to_reprocess = reprocessing_margin > 1
 
     products = %{
       type_id: data.products.productTypeID,
@@ -137,7 +181,10 @@ defmodule EveIndustry.Industry do
       group_id: data.products.name.groupID,
       quantity: build_quantity,
       sell_price: sell_price,
+      sell_margin: sell_margin,
       buy_price: buy_price,
+      buy_margin: buy_margin,
+      reprocessing: reprocessing
     }
 
     %{
@@ -145,77 +192,17 @@ defmodule EveIndustry.Industry do
       name: data.typeName,
       group_id: data.groupID,
       market_group_id: data.marketGroupID,
+      time: build_time,
       materials: materials,
-      unit_market_price: unit_market_price,
-      unit_build_price: unit_build_price,
-      batch_tax: batch_tax,
+      build_from_market_value: unit_value,
+      build_from_industry_value: unit_value,
+      unit_tax: unit_tax,
       products: products,
-      profitable: profitable
+      profitable: profitable,
+      profitable_to_reprocess: profitable_to_reprocess,
+      reprocessing_margin: reprocessing_margin
     }
 
   end
 
-  defp material_details(acc, material, %{
-    job_type: job_type,
-    batch_size: batch_size,
-    security: security,
-    blueprint_me: blueprint_me,
-    rig: rig,
-    structure: structure,
-    solar_system_id: solar_system_id
-  }) do
-
-
-    me_bonus = Bonuses.me_bonuses(job_type, structure, security, rig) * (1 - blueprint_me / 100)
-
-    type_id = material.materialTypeID
-    blueprint_type_id = Blueprints.blueprint_from_type(type_id)
-
-    quantity = Formulas.material_amount(0, me_bonus, material.quantity, batch_size)
-    tax_quantity = Formulas.material_amount(0, 1, material.quantity, batch_size)
-
-    material_sell_price =
-      case Cachex.get!(:min_sell_price, type_id) do
-        nil -> 0
-        x -> Float.round(x, 2)
-      end
-
-    adjusted_price =
-      case Cachex.get!(:adjusted_price, type_id) do
-        nil -> 0
-        price -> price
-      end
-
-    # calculate build cost of the single item
-    # this is explicitly recursive
-
-    unit_build_price =
-      case blueprint_type_id do
-        nil ->
-          # this item has to be bought from the market
-          material_sell_price
-        _ ->
-          # build the component from parts, use that price.
-
-          # hardcoding assumptions for component production purposes
-          batch_size = 100
-          blueprint_me = 10
-
-          result = calculate_single(job_type, blueprint_type_id, blueprint_me, batch_size, security, rig, structure)
-          result[blueprint_type_id][:unit_market_price]
-      end
-
-    result = %{
-      type_id: type_id,
-      group_id: material.name.groupID,
-      name: material.name.typeName,
-      quantity: quantity,
-      tax_quantity: tax_quantity,
-      blueprint_type_id: blueprint_type_id,
-      unit_build_price: unit_build_price,
-      unit_market_price: material_sell_price,
-      adjusted_price: adjusted_price
-    }
-    acc ++ [{ material.materialTypeID, result}]
-  end
 end
