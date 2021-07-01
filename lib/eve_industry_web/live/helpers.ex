@@ -14,8 +14,8 @@ defmodule EveIndustryWeb.Live.Helpers do
 
     result =
       materials
-      |> Enum.filter(fn {type_id, %{group_id: group_id}} -> group_id == 1136 end)
-      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc -> {name, quantity, type_id}  end)
+      |> Enum.filter(fn {_type_id, %{group_id: group_id}} -> group_id == 1136 end)
+      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity, type_id: type_id}}, _acc -> {name, quantity, type_id}  end)
 
     case result do
       nil ->
@@ -34,7 +34,7 @@ defmodule EveIndustryWeb.Live.Helpers do
 
     result =
       materials
-      |> Enum.filter(fn {type_id, %{group_id: group_id}} -> group_id != 1136 end)
+      |> Enum.filter(fn {_type_id, %{group_id: group_id}} -> group_id != 1136 end)
       |> Enum.reduce([], fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc -> acc ++ [{name, quantity, type_id}]  end)
       |> Enum.at(index)
 
