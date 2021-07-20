@@ -37,4 +37,5 @@ npm-debug.log
 _build
 
 priv/sde
+priv/stockpile.txt
 eve.db

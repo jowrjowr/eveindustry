@@ -1,4 +1,4 @@
-{ pkgs ? import <nixos-unstable> {} }:
+{ pkgs ? import <nixpkgs> {} }:
 
 with pkgs;
 
@@ -21,7 +21,7 @@ mkShell {
   ];
 
   # Fix GLIBC Locale
-  LOCALE_ARCHIVE = stdenv.lib.optionalString stdenv.isLinux
+  LOCALE_ARCHIVE = lib.optionalString stdenv.isLinux
     "${pkgs.glibcLocales}/lib/locale/locale-archive";
   LANG = "en_US.UTF-8";
 

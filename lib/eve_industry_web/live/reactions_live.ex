@@ -19,16 +19,26 @@ defmodule EveIndustryWeb.ReactionsLive do
     # 7 days athanor: 88
     # 7 days tatara: 125
 
-    batch_size = 88
-    security = :lowsec
-    rig = :t2
-    structure = :athanor
+    config = %{
+      industry: :reactions,
+      batch_size: 88,
+      solar_system_id: 30002538,
+      blueprint_me: 0,
+      blueprint_te: 0,
+      security: :lowsec,
+      reactions: %{
+        rig: :t2,
+        structure: :athanor
+      }
+    }
 
-    intermediary = reaction_group(428, batch_size, security, rig, structure)
-    advanced = reaction_group(429, batch_size, security, rig, structure)
-    gas_phase = reaction_group(4096, batch_size, security, rig, structure)
-    booster = reaction_group(712, batch_size, security, rig, structure)
-    polymer = reaction_group(974, batch_size, security, rig, structure)
+    reactions = calculate(config)
+
+    intermediary = reaction_group(428, reactions)
+    advanced = reaction_group(429, reactions)
+    gas_phase = reaction_group(4096, reactions)
+    booster = reaction_group(712, reactions)
+    polymer = reaction_group(974, reactions)
 
     {:ok, assign(
       socket,
@@ -41,8 +51,50 @@ defmodule EveIndustryWeb.ReactionsLive do
     }
   end
 
-  defp reaction_group(group_id, batch_size, security, rig, structure) do
-    calculate(batch_size, security, rig, structure)
+  @impl true
+  def handle_event(event, %{"form" => form}, socket) do
+
+    IO.inspect(event)
+
+    config = %{
+      industry: :reactions,
+      batch_size: 88,
+      solar_system_id: 30002538,
+      blueprint_me: 0,
+      blueprint_te: 0,
+      security: String.to_atom(Map.get(form, "security")),
+      reactions: %{
+        rig: String.to_atom(Map.get(form, "rig")),
+        structure: String.to_atom(Map.get(form, "structure"))
+      }
+    }
+
+    build =
+      form
+      |> Map.drop(["rig", "security", "structure"])
+      |> Map.new(fn {type_id, quantity} -> build_input_transform(type_id, quantity) end)
+
+    shopping_list = EveIndustry.Industry.shopping_list(config, build)
+
+    {:noreply, assign(socket, shopping_list: shopping_list)}
+
+  end
+
+  defp build_input_transform(type_id, "") do
+    type_id = String.to_integer(type_id)
+
+    {type_id, 0}
+  end
+
+  defp build_input_transform(type_id, quantity) do
+    type_id = String.to_integer(type_id)
+    quantity = String.to_integer(quantity)
+
+    {type_id, quantity}
+  end
+
+  defp reaction_group(group_id, reactions) do
+    reactions
       |> Enum.filter(fn {_type_id, item} ->
         item[:products][:group_id] == group_id
       end)

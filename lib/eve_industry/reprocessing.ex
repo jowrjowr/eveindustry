@@ -118,7 +118,12 @@ defmodule EveIndustry.Ore do
     unit_value =
       yield
       |> Enum.reduce(0, fn {type_id, amount, _}, acc ->
-        acc + Cachex.get!(:min_sell_price, type_id) * amount
+
+        case Cachex.get!(:min_sell_price, type_id) do
+          nil -> 0
+          x -> acc + x * amount
+        end
+
       end)
 
     unit_value =

@@ -1,16 +1,15 @@
 <h2>Reactions</h2>
 
+<%= f = form_for :form, "#", [phx_change: :select] %>
 <div class="configuration">
 <br>Configuration</br>
-    <%= f = form_for :config, "#", [phx_change: :select] %>
-        <br>
-        System Security Level: <%= select(f, :security, select_security()) %>
-        <br>
-        Reaction Rig: <%= select(f, :rig, select_rig()) %>
-        <br>
-        Reaction structure: <%= select(f, :structure, select_reaction_structure()) %>
-        <br>
-    </form>
+    <br>
+    System Security Level: <%= select(f, :security, select_security()) %>
+    <br>
+    Reaction Rig: <%= select(f, :rig, select_rig()) %>
+    <br>
+    Reaction structure: <%= select(f, :structure, select_reaction_structure()) %>
+    <br>
 </div>
 <br>
 
@@ -20,6 +19,7 @@
     <thead>
         <tr>
             <th>Reaction</th>
+            <th>Batches</th>
             <th>Fuel Block</th>
             <th>Quantity</th>
             <th>Material #1</th>
@@ -40,6 +40,7 @@
                 <img src="https://images.evetech.net/types/<%= @intermediary[type_id].products.type_id %>/icon?size=32">
                 <%= @intermediary[type_id].products.name %>
             </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@intermediary[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@intermediary[type_id]).name %>
@@ -72,6 +73,7 @@
     <thead>
         <tr>
             <th>Reaction</th>
+            <th>Batches</th>
             <th>Fuel Block</th>
             <th>Quantity</th>
             <th>Material #1</th>
@@ -88,13 +90,16 @@
             <th>Buy Price</th>
         </tr>
     </thead>
+
     <tbody id="items">
         <%= for type_id <- Map.keys(@advanced) do %>
+        <%= f = form_for :"#{type_id}", "#", [phx_change: :select] %>
         <tr>
             <td>
                 <img src="https://images.evetech.net/types/<%= @advanced[type_id].products.type_id %>/icon?size=32">
                 <%= @advanced[type_id].products.name %>
             </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@advanced[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@advanced[type_id]).name %>
@@ -125,6 +130,7 @@
             <td><%= format_number(@advanced[type_id].products.sell_price) %> (<%= @advanced[type_id].products.sell_margin %>) </td>
             <td><%= format_number(@advanced[type_id].products.buy_price) %> (<%= @advanced[type_id].products.buy_margin %>) </td>
         </tr>
+        </form>
         <% end %>
     </tbody>
     </table>
@@ -136,6 +142,7 @@
     <thead>
         <tr>
             <th>Reaction</th>
+            <th>Batches</th>
             <th>Fuel Block</th>
             <th>Quantity</th>
             <th>Material #1</th>
@@ -159,6 +166,7 @@
                 <img src="https://images.evetech.net/types/<%= @gas_phase[type_id].products.type_id %>/icon?size=32">
                 <%= @gas_phase[type_id].products.name %>
             </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@gas_phase[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@gas_phase[type_id]).name %>
@@ -200,6 +208,7 @@
     <thead>
         <tr>
             <th>Reaction</th>
+            <th>Batches</th>
             <th>Fuel Block</th>
             <th>Quantity</th>
             <th>Material #1</th>
@@ -221,6 +230,7 @@
                 <img src="https://images.evetech.net/types/<%= @polymer[type_id].products.type_id %>/icon?size=32">
                 <%= @polymer[type_id].products.name %>
             </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@polymer[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@polymer[type_id]).name %>
@@ -257,6 +267,7 @@
     <thead>
         <tr>
             <th>Pure Booster</th>
+            <th>Batches</th>
             <th>Fuel Block</th>
             <th>Quantity</th>
             <th>Material #1</th>
@@ -278,6 +289,7 @@
                 <img src="https://images.evetech.net/types/<%= @booster[type_id].products.type_id %>/icon?size=32">
                 <%= trim_booster_name(@booster[type_id].products.name) %>
             </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@booster[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@booster[type_id]).name %>
@@ -307,3 +319,4 @@
     </tbody>
     </table>
 </div>
+</form>

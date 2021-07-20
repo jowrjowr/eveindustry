@@ -11,21 +11,36 @@ defmodule EveIndustryWeb.StructuresLive do
     blueprint_me = 8
     batch_size = 1
     security = :lowsec
-    rig = :t2
+    rig = :t1
     structure = :azbel
 
-    groups = [2156, 2322, 2510, 2393]
+    #groups = [2156, 2322, 2510, 2393]
+    groups = [1592, 1593, 1594, 1595]
 
     config = %{
-      "blueprint_me" => blueprint_me
+      batch_size: batch_size,
+      blueprint_groups: groups,
+      security: security,
+      manufacturing: %{
+        rig: rig,
+        structure: structure,
+        blueprint_me: blueprint_me
+      },
+      reactions: %{
+        rig: :t2,
+        structure: :athanor
+      }
     }
+    # config = %{batch_size: 100, blueprint_groups: [1592], security: :lowsec, manufacturing: %{ rig: :t1, structure: :azbel, blueprint_me: 10}}
+    # 46213 ferrogel reaction
+    # 4316 hydrogen fuel block bp
 
-    #data = calculate(:industry, groups, blueprint_me, batch_size, security, rig, structure)
+    data = calculate(config)
 
     {:ok, assign(
       socket,
       config: config,
-      data: 1 #data
+      data: data
       )
     }
 

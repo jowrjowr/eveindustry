@@ -1,7 +1,7 @@
 defmodule EveIndustry.Reactions do
   import Ecto.Query, only: [from: 2]
 
-  def calculate(batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
+  def calculate(config) do
 
     # non-blueprint reaction market groups
 
@@ -17,11 +17,13 @@ defmodule EveIndustry.Reactions do
     # 2403: composite
     # 2404: polymer
 
-    reaction_groups = [2402, 2403, 2404, 2769]
+    reaction_market_groups = [2402, 2403, 2404, 2769]
 
-    # reactions are just 0/0 blueprints!
+    reactions =
+      config
+      |> EveIndustry.Industry.calculate()
+      |> Enum.filter(fn {_type_id, %{market_group_id: x}} -> x in reaction_market_groups end)
 
-    reactions = EveIndustry.Industry.calculate(:reactions, reaction_groups, batch_size, security, rig, structure)
 
     reactions =
       reactions

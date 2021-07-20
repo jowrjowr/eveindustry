@@ -1,106 +1,120 @@
 defmodule EveIndustry.Industry do
   alias EveIndustry.Blueprints
   alias EveIndustry.Bonuses
+  alias EveIndustry.Stockpile
   import EveIndustry.Formulas, only: [material_amount: 4]
 
-  def calculate(industry, blueprint_groups, batch_size \\ 100, security \\ :lowsec, rig \\ :t2, structure \\ :athanor) do
+  def shopping_list(config, build) do
 
-    te_bonus = Bonuses.te(industry, security, rig, structure)
-    me_bonus = Bonuses.me(industry, security, rig, structure)
+    IO.inspect(config)
+    IO.inspect(build)
 
-    industry_from_market =
-      blueprint_groups
-      |> Blueprints.by_groups()
-      |> Enum.reduce([], fn item, acc -> acc ++ [{item.typeID, calculate_details(item, me_bonus, te_bonus, batch_size)}] end)
+    blueprints_calculated = calculate(config)
+    #stockpile = Stockpile.parse()
+
+
+  end
+
+  def calculate(config) do
+
+    items =
+      Blueprints.everything()
+      |> Enum.filter(fn item -> item.products != nil end)
+      |> Task.async_stream(fn item -> {item.typeID, calculate_details(item, config)} end)
+      |> Enum.reduce([], fn {:ok, {type_id, data}}, acc -> [{type_id, data}] ++ acc end)
       |> Map.new()
 
-    # need to feed this data back into itself so multi-level blueprints can be priced using previously constructed products
-    # TODO: make this not look like shit.
+    # industry flow, at maximum
+    # cap ship -> cap component -> component -> adv reaction -> intermediate reaction -> fuel block
+    # 6 levels worst case
 
     industry =
-      industry_from_market
-      |> Enum.reduce([], fn {type_id, data}, acc ->
-        industry_value = calculate_industry_prices(type_id, industry_from_market)
-        map =
-          data
-          |> Map.put(:build_from_industry_value, industry_value)
-        acc ++ [{type_id, map}]
-      end)
-      |> Map.new()
+      items
+      |> Map.new(fn item -> calculate_industry_prices(item, items) end)
 
-      industry
+
+    industry
+
   end
 
-  def calculate_industry_prices(type_id, data) do
-    # recursively cycle through the blueprints to calculate the next level from previous
+  def calculate_industry_prices({type_id, data}, items) do
 
-    # only recurse into these item groups for prices
-    # will add to as necessary
+    # attempt to calculate the build value of an item using previously calculated values
 
-    industry_price_groups = [712, 428]
-
-    # make sure all the data needed to calculate exists
+    debug = type_id == 38661
 
     industry_unit_value =
-      data
-      |> Map.get(type_id)
-      |> Map.get(:materials)
-      |> Enum.reduce(0, fn {material_type_id, %{group_id: group_id}}, acc ->
+      data.materials
+      |> Enum.reduce(0, fn {material_type_id, material_data}, acc ->
+
+        # if debug do
+        #   IO.inspect(material_data)
+        #   IO.inspect(material_type_id)
+        #   IO.inspect(Blueprints.blueprint_from_type(material_type_id))
+        # end
+
         value =
-          case Enum.member?(industry_price_groups, group_id) do
+          case Blueprints.blueprint_from_type(material_type_id) do
 
-            true ->
-              {_, result} =
-                data
-                |> Enum.filter(fn {_, item} -> item[:products][:type_id] == material_type_id end)
-                |> hd()
-              Map.get(result, :build_from_industry_value)
+            [] ->
+              # means there is no blueprint to build this from. buy it from the market.
+              material_data.quantity * material_data.sell_price
+            x ->
+              material_blueprint_type_id = hd(x)
 
-            false ->
-              Cachex.get!(:min_sell_price, material_type_id)
+              # is built from a blueprint. only use that price if it is nonzero.
+              item = Map.get(items, material_blueprint_type_id, %{})
+              build_from_industry_value = Map.get(item, :build_from_industry_value, 0)
+              if debug do
+                IO.inspect(item)
+              end
+              material_data.quantity * build_from_industry_value
           end
 
-        case {value, acc} do
-          {nil, _} -> nil
-          {_, nil} -> nil
-          {_, _} -> acc + value
-        end
-
+        acc + value
       end)
 
-    industry_unit_value =
-      case industry_unit_value do
-        nil -> 0
-        _ -> industry_unit_value
-      end
+      data = Map.replace(data, :industry_unit_value, industry_unit_value)
 
-    case data[type_id][:products][:group_id] do
-      428 -> nil
-      _ -> industry_unit_value / data[type_id][:products][:quantity]
-    end
-
+      {type_id, data}
   end
 
-  def calculate_details(data, me_bonus, te_bonus, batch_size) do
 
-    # hardcode for now
+  defp material_details(config, material) do
+    material_type_id = material.materialTypeID
+    industry_type = Blueprints.item_industry_type(material_type_id)
 
-    solar_system_id = 30002538
+    me_bonus = Bonuses.me(config)
+
+    batch_size = config.batch_size
+    blueprint_me = config.blueprint_me
+
+    %{
+      type_id: material_type_id,
+      group_id: material.name.groupID,
+      name: material.name.typeName,
+      quantity: material_amount(blueprint_me, me_bonus, material.quantity, batch_size),
+      industry_type: industry_type,
+      buy_price: buy_price(material_type_id),
+      sell_price: sell_price(material_type_id)
+    }
+  end
+
+  def calculate_details(data, config) do
+
+    solar_system_id = config.solar_system_id
+    batch_size = config.batch_size
 
     materials =
       data.materials
       |> Enum.reduce([], fn material, acc ->
-        result = %{
-          type_id: material.materialTypeID,
-          group_id: material.name.groupID,
-          name: material.name.typeName,
-          quantity: material_amount(0, me_bonus, material.quantity, batch_size)
-        }
-        acc ++ [{ material.materialTypeID, result}]
+        material_type_id = material.materialTypeID
+        result = material_details(config, material)
+        [{ material_type_id, result}] ++ acc
       end)
       |> Map.new()
 
-    build_time = batch_size * data.time.time * te_bonus
+    build_time = 0 #batch_size * data.time.time * te_bonus
     build_quantity = data.products.quantity * batch_size
 
     unit_tax =
@@ -141,38 +155,14 @@ defmodule EveIndustry.Industry do
 
     unit_value = unit_material_price + unit_tax
 
-    sell_price =
-      case Cachex.get!(:min_sell_price, data.products.productTypeID) do
-        nil -> 0
-        x -> Float.round(x, 2)
-      end
+    sell_price = sell_price(data.products.productTypeID)
+    buy_price = buy_price(data.products.productTypeID)
 
-    buy_price =
-      case Cachex.get!(:max_buy_price, data.products.productTypeID) do
-        nil -> 0
-        x -> Float.round(x, 2)
-      end
-
-    sell_margin =
-      case sell_price do
-        0 -> 0
-        _ -> Float.round(sell_price / unit_value, 4) |> Float.round(2)
-      end
-
-    buy_margin =
-      case buy_price do
-        0 -> 0
-        _ -> Float.round(buy_price / unit_value, 4) |> Float.round(2)
-      end
+    sell_margin = margin(sell_price, unit_value)
+    buy_margin = margin(buy_price, unit_value)
+    reprocessing_margin = reprocessing_margin(reprocessing[:unit_value], unit_value)
 
     profitable = sell_margin < 1 || buy_margin < 1
-
-    reprocessing_margin =
-      case unit_value do
-        0 -> 0
-        _ -> Float.round(reprocessing[:unit_value] / unit_value, 4) |> Float.round(2)
-      end
-
     profitable_to_reprocess = reprocessing_margin > 1
 
     products = %{
@@ -195,14 +185,42 @@ defmodule EveIndustry.Industry do
       time: build_time,
       materials: materials,
       build_from_market_value: unit_value,
-      build_from_industry_value: unit_value,
-      unit_tax: unit_tax,
+      build_from_industry_value: 0.0,
       products: products,
       profitable: profitable,
       profitable_to_reprocess: profitable_to_reprocess,
       reprocessing_margin: reprocessing_margin
     }
 
+  end
+
+  defp margin(_market_price, unit_value) when unit_value == 0, do: 0.0
+  defp margin(market_price, _unit_value) when market_price == 0, do: 0.0
+
+  defp margin(market_price, value) do
+    Float.round(market_price / value, 2)
+  end
+
+  defp reprocessing_margin(reprocessing_unit_value, _value) when reprocessing_unit_value == 0, do: 0.0
+  defp reprocessing_margin(_reprocessing_unit_value, value) when value == 0, do: 0.0
+
+  defp reprocessing_margin(reprocessing_unit_value, value) do
+    Float.round(reprocessing_unit_value / value, 2)
+  end
+
+
+  defp sell_price(type_id) do
+    case Cachex.get!(:min_sell_price, type_id) do
+      nil -> 0.0
+      x -> Float.round(x, 2)
+    end
+  end
+
+  defp buy_price(type_id) do
+    case Cachex.get!(:max_buy_price, type_id) do
+      nil -> 0.0
+      x -> Float.round(x, 2)
+    end
   end
 
 end
