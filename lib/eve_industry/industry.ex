@@ -1,22 +1,9 @@
 defmodule EveIndustry.Industry do
   alias EveIndustry.Blueprints
   alias EveIndustry.Bonuses
-  alias EveIndustry.Stockpile
   import EveIndustry.Formulas, only: [material_amount: 4]
 
-  def shopping_list(config, build) do
-
-    IO.inspect(config)
-    IO.inspect(build)
-
-    blueprints_calculated = calculate(config)
-    #stockpile = Stockpile.parse()
-
-
-  end
-
   def calculate(config) do
-
     items =
       Blueprints.everything()
       |> Enum.filter(fn item -> item.products != nil end)
@@ -32,13 +19,10 @@ defmodule EveIndustry.Industry do
       items
       |> Map.new(fn item -> calculate_industry_prices(item, items) end)
 
-
     industry
-
   end
 
   def calculate_industry_prices({type_id, data}, items) do
-
     # attempt to calculate the build value of an item using previously calculated values
 
     debug = type_id == 38661
@@ -46,7 +30,6 @@ defmodule EveIndustry.Industry do
     industry_unit_value =
       data.materials
       |> Enum.reduce(0, fn {material_type_id, material_data}, acc ->
-
         # if debug do
         #   IO.inspect(material_data)
         #   IO.inspect(material_type_id)
@@ -55,30 +38,31 @@ defmodule EveIndustry.Industry do
 
         value =
           case Blueprints.blueprint_from_type(material_type_id) do
-
             [] ->
               # means there is no blueprint to build this from. buy it from the market.
               material_data.quantity * material_data.sell_price
+
             x ->
               material_blueprint_type_id = hd(x)
 
               # is built from a blueprint. only use that price if it is nonzero.
               item = Map.get(items, material_blueprint_type_id, %{})
               build_from_industry_value = Map.get(item, :build_from_industry_value, 0)
+
               if debug do
                 IO.inspect(item)
               end
+
               material_data.quantity * build_from_industry_value
           end
 
         acc + value
       end)
 
-      data = Map.replace(data, :industry_unit_value, industry_unit_value)
+    data = Map.replace(data, :industry_unit_value, industry_unit_value)
 
-      {type_id, data}
+    {type_id, data}
   end
-
 
   defp material_details(config, material) do
     material_type_id = material.materialTypeID
@@ -101,7 +85,6 @@ defmodule EveIndustry.Industry do
   end
 
   def calculate_details(data, config) do
-
     solar_system_id = config.solar_system_id
     batch_size = config.batch_size
 
@@ -110,11 +93,12 @@ defmodule EveIndustry.Industry do
       |> Enum.reduce([], fn material, acc ->
         material_type_id = material.materialTypeID
         result = material_details(config, material)
-        [{ material_type_id, result}] ++ acc
+        [{material_type_id, result}] ++ acc
       end)
       |> Map.new()
 
-    build_time = 0 #batch_size * data.time.time * te_bonus
+    # batch_size * data.time.time * te_bonus
+    build_time = 0
     build_quantity = data.products.quantity * batch_size
 
     unit_tax =
@@ -130,7 +114,6 @@ defmodule EveIndustry.Industry do
           end
 
         acc + tax_quantity * adjusted_price * cost_index / build_quantity
-
       end)
 
     # not every reaction (eg, drugs) has reaction stuff on the market
@@ -143,7 +126,9 @@ defmodule EveIndustry.Industry do
 
     unit_material_price =
       case calculate_unit_value do
-        false -> 0
+        false ->
+          0
+
         true ->
           Enum.reduce(materials, 0, fn {type_id, materials}, acc ->
             quantity = materials[:quantity]
@@ -191,7 +176,6 @@ defmodule EveIndustry.Industry do
       profitable_to_reprocess: profitable_to_reprocess,
       reprocessing_margin: reprocessing_margin
     }
-
   end
 
   defp margin(_market_price, unit_value) when unit_value == 0, do: 0.0
@@ -201,13 +185,14 @@ defmodule EveIndustry.Industry do
     Float.round(market_price / value, 2)
   end
 
-  defp reprocessing_margin(reprocessing_unit_value, _value) when reprocessing_unit_value == 0, do: 0.0
+  defp reprocessing_margin(reprocessing_unit_value, _value) when reprocessing_unit_value == 0,
+    do: 0.0
+
   defp reprocessing_margin(_reprocessing_unit_value, value) when value == 0, do: 0.0
 
   defp reprocessing_margin(reprocessing_unit_value, value) do
     Float.round(reprocessing_unit_value / value, 2)
   end
-
 
   defp sell_price(type_id) do
     case Cachex.get!(:min_sell_price, type_id) do
@@ -222,5 +207,4 @@ defmodule EveIndustry.Industry do
       x -> Float.round(x, 2)
     end
   end
-
 end
