@@ -42,8 +42,7 @@ defmodule EveIndustry.Industry do
     item =
       item
       |> Map.delete(:blueprint)
-
-    # |> Map.delete(:unit_tax)
+      |> Map.delete(:unit_tax)
 
     {type_id, item}
   end
