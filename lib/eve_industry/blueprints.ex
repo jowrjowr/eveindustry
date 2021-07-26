@@ -2,7 +2,6 @@ defmodule EveIndustry.Blueprints do
   import Ecto.Query, only: [from: 2]
 
   def by_groups(market_groups) do
-
     # first, fetch all blueprint typeids that belong to these groups
 
     query =
@@ -12,17 +11,15 @@ defmodule EveIndustry.Blueprints do
           :materials,
           :products,
           :time,
-          materials: [ :name ],
-          products: [ :name ]
+          materials: [:name],
+          products: [:name]
         ]
       )
 
     EveIndustry.Repo.all(query)
-
   end
 
   def everything() do
-
     # first, fetch all blueprint typeids that belong to these groups
 
     query =
@@ -32,13 +29,12 @@ defmodule EveIndustry.Blueprints do
           :materials,
           :products,
           :time,
-          materials: [ :name ],
-          products: [ :name ]
+          materials: [:name],
+          products: [:name]
         ]
       )
 
     EveIndustry.Repo.all(query)
-
   end
 
   def multiple(type_ids) do
@@ -49,13 +45,12 @@ defmodule EveIndustry.Blueprints do
         preload: [
           :materials,
           :products,
-          materials: [ :name ],
-          products: [ :name ]
+          materials: [:name],
+          products: [:name]
         ]
       )
 
     EveIndustry.Repo.all(query)
-
   end
 
   def single(type_id) do
@@ -66,13 +61,12 @@ defmodule EveIndustry.Blueprints do
         preload: [
           :materials,
           :products,
-          materials: [ :name ],
-          products: [ :name ]
+          materials: [:name],
+          products: [:name]
         ]
       )
 
     EveIndustry.Repo.one(query)
-
   end
 
   def blueprint_from_type(type_id) do
@@ -80,10 +74,24 @@ defmodule EveIndustry.Blueprints do
       from(r in EveIndustry.Schema.IndustryActivityProducts,
         where: r.productTypeID == ^type_id,
         select: r.typeID
-
       )
 
     EveIndustry.Repo.all(query)
+  end
+
+  def to_map(blueprint) do
+    %{
+      blueprint: blueprint,
+      type_id: blueprint.typeID,
+      name: blueprint.typeName,
+      group_id: blueprint.groupID,
+      market_group_id: blueprint.marketGroupID,
+      time: blueprint.time.time,
+      industry_type: item_industry_type(blueprint.products.productTypeID)
+    }
+  end
+
+  defp material_details(material) do
   end
 
   def item_industry_type(product_type_id) do
@@ -117,6 +125,4 @@ defmodule EveIndustry.Blueprints do
     result = hd(data)
     result.activityID
   end
-
-
 end

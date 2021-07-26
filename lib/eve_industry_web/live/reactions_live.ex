@@ -5,7 +5,6 @@ defmodule EveIndustryWeb.ReactionsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-
     # groups (from invGroups)
 
     # 429: "Composite" - advanced moon materials
@@ -22,7 +21,7 @@ defmodule EveIndustryWeb.ReactionsLive do
     config = %{
       industry: :reactions,
       batch_size: 88,
-      solar_system_id: 30002538,
+      solar_system_id: 30_002_538,
       blueprint_me: 0,
       blueprint_te: 0,
       security: :lowsec,
@@ -40,26 +39,23 @@ defmodule EveIndustryWeb.ReactionsLive do
     booster = reaction_group(712, reactions)
     polymer = reaction_group(974, reactions)
 
-    {:ok, assign(
-      socket,
-      intermediary: intermediary,
-      advanced: advanced,
-      gas_phase: gas_phase,
-      booster: booster,
-      polymer: polymer
-      )
-    }
+    {:ok,
+     assign(
+       socket,
+       intermediary: intermediary,
+       advanced: advanced,
+       gas_phase: gas_phase,
+       booster: booster,
+       polymer: polymer
+     )}
   end
 
   @impl true
   def handle_event(event, %{"form" => form}, socket) do
-
-    IO.inspect(event)
-
     config = %{
       industry: :reactions,
       batch_size: 88,
-      solar_system_id: 30002538,
+      solar_system_id: 30_002_538,
       blueprint_me: 0,
       blueprint_te: 0,
       security: String.to_atom(Map.get(form, "security")),
@@ -74,10 +70,9 @@ defmodule EveIndustryWeb.ReactionsLive do
       |> Map.drop(["rig", "security", "structure"])
       |> Map.new(fn {type_id, quantity} -> build_input_transform(type_id, quantity) end)
 
-    shopping_list = EveIndustry.Industry.shopping_list(config, build)
+    # shopping_list = EveIndustry.Industry.shopping_list(config, build)
 
-    {:noreply, assign(socket, shopping_list: shopping_list)}
-
+    {:noreply, assign(socket, shopping_list: %{})}
   end
 
   defp build_input_transform(type_id, "") do
@@ -95,10 +90,9 @@ defmodule EveIndustryWeb.ReactionsLive do
 
   defp reaction_group(group_id, reactions) do
     reactions
-      |> Enum.filter(fn {_type_id, item} ->
-        item[:products][:group_id] == group_id
-      end)
-      |> Map.new()
+    |> Enum.filter(fn {_type_id, item} ->
+      item[:products][:group_id] == group_id
+    end)
+    |> Map.new()
   end
-
 end

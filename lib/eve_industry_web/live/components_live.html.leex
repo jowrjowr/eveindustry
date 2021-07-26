@@ -1,0 +1,102 @@
+<h2>Components</h2>
+
+<%= f = form_for :form, "#", [phx_submit: :submit] %>
+<div class="configuration">
+<br>Configuration</br>
+    <br>
+    Security: <%= select(f, :security, select_security()) %>
+    <br>
+    Rig: <%= select(f, :rig, select_rig()) %>
+    <br>
+    Structure: <%= select(f, :structure, select_manufacturing_structure()) %>
+    <br>
+    <%= submit "SUBMIT" %>
+</div>
+<br>
+
+<h3>Capital</h3>
+<div class="standard_capital">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@standard_capital) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @standard_capital[type_id].products.type_id %>/icon?size=32">
+                <%= @standard_capital[type_id].products.name %>
+            </td>
+            <td><%= format_number(@standard_capital[type_id].build_from_market_value) %></td>
+            <td><%= @standard_capital[type_id].products.sell_margin %> </td>
+            <td><%= @standard_capital[type_id].products.buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Structure</h3>
+<div class="structure">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@structure) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @structure[type_id].products.type_id %>/icon?size=32">
+                <%= @structure[type_id].products.name %>
+            </td>
+            <td><%= format_number(@structure[type_id].build_from_market_value) %></td>
+            <td><%= @structure[type_id].products.sell_margin %> </td>
+            <td><%= @structure[type_id].products.buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+</form>
+
+<%= if @shopping_list != nil do %>
+
+    <h3>SHOPPING LIST</h3>
+    <table>
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Total</th>
+            <th>Stockpile</th>
+            <th>Purchase Amount</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@shopping_list) do %>
+        <tr>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @shopping_list[type_id].type_id %>/icon?size=32">
+                <%= @shopping_list[type_id].name %>
+            </td>
+            <td><%= format_number(@shopping_list[type_id].quantity.total) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.stockpile) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.purchase) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+<% end %>

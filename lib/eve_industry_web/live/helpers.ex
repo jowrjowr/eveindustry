@@ -1,7 +1,6 @@
 defmodule EveIndustryWeb.Live.Helpers do
-
   def choose_group(%{materials: materials}, target_group) do
-    Enum.reduce(materials, [], fn {_type_id, %{group_id: group_id, name: name}}, acc  ->
+    Enum.reduce(materials, [], fn {_type_id, %{group_id: group_id, name: name}}, acc ->
       if group_id == target_group do
         acc ++ [name]
       else
@@ -11,15 +10,17 @@ defmodule EveIndustryWeb.Live.Helpers do
   end
 
   def reaction_fuel(%{materials: materials}) do
-
     result =
       materials
       |> Enum.filter(fn {_type_id, %{group_id: group_id}} -> group_id == 1136 end)
-      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity, type_id: type_id}}, _acc -> {name, quantity, type_id}  end)
+      |> Enum.reduce(nil, fn {_, %{name: name, quantity: quantity, type_id: type_id}}, _acc ->
+        {name, quantity, type_id}
+      end)
 
     case result do
       nil ->
         %{name: nil, quantity: nil, type_id: nil}
+
       {name, quantity, type_id} ->
         %{
           name: trim_fuel(name),
@@ -27,22 +28,24 @@ defmodule EveIndustryWeb.Live.Helpers do
           type_id: type_id
         }
     end
-
   end
 
   def reaction_inputs(%{materials: materials}, index) do
-
     result =
       materials
       |> Enum.filter(fn {_type_id, %{group_id: group_id}} -> group_id != 1136 end)
-      |> Enum.reduce([], fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc -> acc ++ [{name, quantity, type_id}]  end)
+      |> Enum.reduce([], fn {_, %{name: name, quantity: quantity, type_id: type_id}}, acc ->
+        acc ++ [{name, quantity, type_id}]
+      end)
       |> Enum.at(index)
 
     case result do
-      nil -> %{name: nil, quantity: nil, type_id: nil}
-      {name, quantity, type_id} -> %{name: name, quantity: format_number(quantity), type_id: type_id}
-    end
+      nil ->
+        %{name: nil, quantity: nil, type_id: nil}
 
+      {name, quantity, type_id} ->
+        %{name: name, quantity: format_number(quantity), type_id: type_id}
+    end
   end
 
   def trim_booster_name(string) do
@@ -55,25 +58,22 @@ defmodule EveIndustryWeb.Live.Helpers do
   def trim_formula(string), do: String.replace(string, " Reaction Formula", "")
 
   def select_reaction_structure() do
-
     [
-      "Athanor": :athanor,
-      "Tatara": :tatara,
-      "Station": :station
+      Athanor: :athanor,
+      Tatara: :tatara,
+      Station: :station
     ]
   end
 
-  def select_industry_structure() do
-
+  def select_manufacturing_structure() do
     [
-      "Azbel": :azbel,
-      "Raitaru": :raitaru,
-      "Sotiyo": :sotiyo
+      Azbel: :azbel,
+      Raitaru: :raitaru,
+      Sotiyo: :sotiyo
     ]
   end
 
   def select_refine_implant() do
-
     [
       "4%": :four_percent,
       "I'm poor": :garbage
@@ -81,26 +81,23 @@ defmodule EveIndustryWeb.Live.Helpers do
   end
 
   def select_security() do
-
     [
-      "Lowsec": :lowsec,
-      "Nullsec": :nullsec,
-      "Highsec": :highsec,
-      "Wormhole": :wormhole
+      Lowsec: :lowsec,
+      Nullsec: :nullsec,
+      Highsec: :highsec,
+      Wormhole: :wormhole
     ]
   end
 
   def select_rig() do
-
     [
-      "T2": :t2,
-      "T1": :t1,
-      "None": nil
+      T2: :t2,
+      T1: :t1,
+      None: nil
     ]
   end
 
   def select_blueprint_me() do
-
     [
       "1": 1,
       "2": 2,
@@ -111,7 +108,7 @@ defmodule EveIndustryWeb.Live.Helpers do
       "7": 7,
       "8": 8,
       "9": 9,
-      "10": 10,
+      "10": 10
     ]
   end
 
@@ -119,4 +116,82 @@ defmodule EveIndustryWeb.Live.Helpers do
   def format_number(0), do: nil
   def format_number(value), do: Number.Delimit.number_to_delimited(value, precision: 0)
 
+  def shopping_list(items, form) do
+    # what is being built, and how much?
+
+    total_manifest =
+      form
+      |> Map.drop(["rig", "security", "structure"])
+      |> Enum.filter(fn {_k, v} -> v != "" end)
+      |> Enum.map(fn {k, v} -> {String.to_integer(k), String.to_integer(v)} end)
+      |> Enum.map(fn {type_id, build_quantity} ->
+        blueprint_details = Map.get(items, type_id)
+
+        materials =
+          blueprint_details
+          |> Map.get(:materials)
+          |> Enum.reduce(%{}, fn {material_type_id, material}, acc ->
+            result = %{
+              name: material.name,
+              type_id: material.type_id,
+              quantity: material.quantity * build_quantity
+            }
+
+            Map.put(acc, material_type_id, result)
+          end)
+
+        {type_id, materials}
+      end)
+      |> Enum.reduce(%{}, fn {_, item_manifest}, acc ->
+        # this handles the merge and stockpile functions in one go
+        Map.merge(acc, item_manifest, &map_merge/3)
+      end)
+      |> Enum.reduce(%{}, fn {k, data}, acc ->
+        # account for the stockpile
+        Map.merge(acc, %{k => subtract_stockpile(data)})
+      end)
+
+    total_manifest
+  end
+
+  defp map_merge(_key, v1, v2) do
+    # zip all this crap together.
+
+    %{name: name, quantity: q1, type_id: type_id} = v1
+    %{quantity: q2} = v2
+
+    %{name: name, type_id: type_id, quantity: q1 + q2}
+  end
+
+  defp subtract_stockpile(%{name: name, quantity: total, type_id: type_id}) do
+    # what needs to be *purchased*
+
+    stockpile =
+      case Cachex.get!(:stockpile, type_id) do
+        nil ->
+          0
+
+        amount ->
+          amount
+      end
+
+    purchase =
+      case total - stockpile do
+        amount when amount > 0 ->
+          amount
+
+        _ ->
+          0
+      end
+
+    %{
+      name: name,
+      type_id: type_id,
+      quantity: %{
+        total: total,
+        stockpile: stockpile,
+        purchase: purchase
+      }
+    }
+  end
 end

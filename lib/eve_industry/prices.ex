@@ -9,6 +9,27 @@ defmodule EveIndustry.Prices do
     }
   end
 
+  def adjusted_price(type_id) do
+    case Cachex.get!(:adjusted_price, type_id) do
+      nil -> 0.0
+      price -> price
+    end
+  end
+
+  def sell_price(type_id) do
+    case Cachex.get!(:min_sell_price, type_id) do
+      nil -> 0.0
+      price -> price
+    end
+  end
+
+  def buy_price(type_id) do
+    case Cachex.get!(:max_buy_price, type_id) do
+      nil -> 0.0
+      price -> price
+    end
+  end
+
   def process_cost_indices() do
     # just shove the blob into ETS
     esi_url = "https://esi.evetech.net/latest/industry/systems"
@@ -19,15 +40,17 @@ defmodule EveIndustry.Prices do
 
     for %{solar_system_id: solar_system_id, cost_indices: cost_indices} <- result do
       cost_indices =
-        for %{activity: activity, cost_index: cost_index} <- cost_indices, into: %{}, do: {activity, cost_index}
+        for %{activity: activity, cost_index: cost_index} <- cost_indices,
+            into: %{},
+            do: {activity, cost_index}
 
       Cachex.put(:manufacturing_cost_index, solar_system_id, cost_indices["manufacturing"])
       Cachex.put(:reaction_cost_index, solar_system_id, cost_indices["reaction"])
     end
 
     :ok
-
   end
+
   def process_adjusted_prices() do
     # ccp baseprice
 
@@ -44,7 +67,6 @@ defmodule EveIndustry.Prices do
   end
 
   def process_esi_prices(region) do
-
     data = fetch_market_prices(region)
 
     amount_of_data = length(data)
@@ -52,7 +74,7 @@ defmodule EveIndustry.Prices do
 
     type_ids =
       data
-      |> Enum.reduce([], fn item, acc -> [ item[:type_id] ] ++ acc end)
+      |> Enum.reduce([], fn item, acc -> [item[:type_id]] ++ acc end)
       |> Enum.uniq()
 
     distinct_type_ids = length(type_ids)
@@ -62,8 +84,12 @@ defmodule EveIndustry.Prices do
     # do a little pre-processing to shave off data
 
     order_key_filter = [
-      :duration, :issued, :location_id,
-      :min_volume, :order_id, :system_id,
+      :duration,
+      :issued,
+      :location_id,
+      :min_volume,
+      :order_id,
+      :system_id,
       :volume_total
     ]
 
@@ -82,15 +108,12 @@ defmodule EveIndustry.Prices do
 
       Cachex.put(:min_sell_price, type_id, data[:min_sell_price])
       Cachex.put(:max_buy_price, type_id, data[:max_buy_price])
-
     end
 
     :ok
-
   end
 
   def calculate_price(type_id, data) do
-
     data = Enum.filter(data, fn item -> item[:type_id] == type_id end)
 
     # example of ESI data processed:
@@ -141,11 +164,9 @@ defmodule EveIndustry.Prices do
       min_sell_price: sell_price,
       max_buy_price: buy_price
     }
-
   end
 
-  def fetch_market_prices(region \\ 10000002) do
-
+  def fetch_market_prices(region \\ 10_000_002) do
     # fetch the raw price market data from ESI directly
     # can take awhile at hundreds of pages
 
@@ -158,15 +179,15 @@ defmodule EveIndustry.Prices do
       |> Mojito.Headers.get("x-pages")
       |> String.to_integer()
 
-
     Logger.debug("Total ESI market pages in region #{region}: #{total_pages}")
     first_page = Jason.decode!(response.body, keys: :atoms)
 
-    stream = Task.async_stream(
-      2..total_pages,
-      fn page -> fetch_additional_market_pages(region, page) end,
-      max_concurrency: 50
-    )
+    stream =
+      Task.async_stream(
+        2..total_pages,
+        fn page -> fetch_additional_market_pages(region, page) end,
+        max_concurrency: 50
+      )
 
     rest_of_data =
       stream
@@ -176,7 +197,6 @@ defmodule EveIndustry.Prices do
   end
 
   def fetch_additional_market_pages(region, page) do
-
     # fetch the raw price market data from ESI directly
     # can take awhile at hundreds of pages
 
@@ -187,6 +207,5 @@ defmodule EveIndustry.Prices do
     {:ok, response} = Mojito.request(method: :get, url: esi_url)
 
     Jason.decode!(response.body, keys: :atoms)
-
   end
 end

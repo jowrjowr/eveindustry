@@ -1,210 +1,167 @@
 defmodule EveIndustry.Industry do
   alias EveIndustry.Blueprints
   alias EveIndustry.Bonuses
+  alias EveIndustry.Formulas
+  alias EveIndustry.Prices
   import EveIndustry.Formulas, only: [material_amount: 4]
 
   def calculate(config) do
-    items =
+    industry =
       Blueprints.everything()
       |> Enum.filter(fn item -> item.products != nil end)
-      |> Task.async_stream(fn item -> {item.typeID, calculate_details(item, config)} end)
-      |> Enum.reduce([], fn {:ok, {type_id, data}}, acc -> [{type_id, data}] ++ acc end)
+      |> Enum.reduce([], fn blueprint, acc ->
+        acc ++ [{blueprint.typeID, Blueprints.to_map(blueprint)}]
+      end)
       |> Map.new()
+      |> Map.new(fn item -> calculate_yields(config, item) end)
+      |> Map.new(fn item -> calculate_tax(config, item) end)
+      |> Map.new(fn item -> calculate_market_prices(item) end)
 
     # industry flow, at maximum
     # cap ship -> cap component -> component -> adv reaction -> intermediate reaction -> fuel block
     # 6 levels worst case
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
+    industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
 
-    industry =
-      items
-      |> Map.new(fn item -> calculate_industry_prices(item, items) end)
-
-    industry
+    # cleanup
+    Map.new(industry, fn item -> purge_garbage(item) end)
   end
 
-  def calculate_industry_prices({type_id, data}, items) do
-    # attempt to calculate the build value of an item using previously calculated values
+  defp purge_garbage({type_id, item}) do
+    # this is the price from buying components from the market
 
-    debug = type_id == 38661
+    item =
+      item
+      |> Map.delete(:blueprint)
+      |> Map.delete(:unit_tax)
 
-    industry_unit_value =
-      data.materials
-      |> Enum.reduce(0, fn {material_type_id, material_data}, acc ->
-        # if debug do
-        #   IO.inspect(material_data)
-        #   IO.inspect(material_type_id)
-        #   IO.inspect(Blueprints.blueprint_from_type(material_type_id))
-        # end
-
-        value =
-          case Blueprints.blueprint_from_type(material_type_id) do
-            [] ->
-              # means there is no blueprint to build this from. buy it from the market.
-              material_data.quantity * material_data.sell_price
-
-            x ->
-              material_blueprint_type_id = hd(x)
-
-              # is built from a blueprint. only use that price if it is nonzero.
-              item = Map.get(items, material_blueprint_type_id, %{})
-              build_from_industry_value = Map.get(item, :build_from_industry_value, 0)
-
-              if debug do
-                IO.inspect(item)
-              end
-
-              material_data.quantity * build_from_industry_value
-          end
-
-        acc + value
-      end)
-
-    data = Map.replace(data, :industry_unit_value, industry_unit_value)
-
-    {type_id, data}
+    {type_id, item}
   end
 
-  defp material_details(config, material) do
-    material_type_id = material.materialTypeID
-    industry_type = Blueprints.item_industry_type(material_type_id)
-
+  defp calculate_yields(config, {type_id, item}) do
+    batch_size = Map.get(config, :batch_size, 20)
+    blueprint_me = Map.get(config, :blueprint_me, 0)
     me_bonus = Bonuses.me(config)
 
-    batch_size = config.batch_size
-    blueprint_me = config.blueprint_me
-
-    %{
-      type_id: material_type_id,
-      group_id: material.name.groupID,
-      name: material.name.typeName,
-      quantity: material_amount(blueprint_me, me_bonus, material.quantity, batch_size),
-      industry_type: industry_type,
-      buy_price: buy_price(material_type_id),
-      sell_price: sell_price(material_type_id)
-    }
-  end
-
-  def calculate_details(data, config) do
-    solar_system_id = config.solar_system_id
-    batch_size = config.batch_size
+    blueprint = item.blueprint
+    build_quantity = blueprint.products.quantity * batch_size
 
     materials =
-      data.materials
+      blueprint.materials
       |> Enum.reduce([], fn material, acc ->
         material_type_id = material.materialTypeID
-        result = material_details(config, material)
+        material_industry_type = Blueprints.item_industry_type(material_type_id)
+
+        material_quantity = material_amount(blueprint_me, me_bonus, material.quantity, batch_size)
+
+        result = %{
+          type_id: material_type_id,
+          group_id: material.name.groupID,
+          name: material.name.typeName,
+          quantity: material_quantity,
+          industry_type: material_industry_type
+        }
+
         [{material_type_id, result}] ++ acc
       end)
       |> Map.new()
 
-    # batch_size * data.time.time * te_bonus
-    build_time = 0
-    build_quantity = data.products.quantity * batch_size
+    products = %{
+      type_id: blueprint.products.productTypeID,
+      name: blueprint.products.name.typeName,
+      group_id: blueprint.products.name.groupID,
+      quantity: build_quantity
+    }
 
-    unit_tax =
-      data.materials
-      |> Enum.reduce(0, fn material, acc ->
-        tax_quantity = material_amount(0, 0, material.quantity, batch_size)
-        cost_index = Cachex.get!(:reaction_cost_index, solar_system_id)
+    item =
+      item
+      |> Map.put(:materials, materials)
+      |> Map.put(:products, products)
 
-        adjusted_price =
-          case Cachex.get!(:adjusted_price, material.materialTypeID) do
-            nil -> 0
-            price -> price
+    {type_id, item}
+  end
+
+  defp calculate_tax(config, {type_id, item}) do
+    solar_system_id = Map.get(config, :solar_system_id, 30_002_538)
+    batch_size = Map.get(config, :batch_size, 20)
+    blueprint = item.blueprint
+
+    cost_index = Formulas.cost_index(item.industry_type, solar_system_id)
+
+    build_tax =
+      Enum.reduce(blueprint.materials, 0, fn material, acc ->
+        tax_quantity = material_amount(0, 1.0, material.quantity, batch_size)
+        adjusted_price = Prices.adjusted_price(material.materialTypeID)
+
+        material_tax = tax_quantity * adjusted_price * cost_index
+
+        acc + material_tax
+      end)
+
+    unit_tax = build_tax / batch_size
+
+    {type_id, Map.put(item, :unit_tax, unit_tax)}
+  end
+
+  defp calculate_market_prices({type_id, item}) do
+    # this is the price from buying components from the market
+
+    market_cost =
+      item.materials
+      |> Enum.reduce(0, fn {material_type_id, material}, acc ->
+        quantity = material[:quantity]
+        sell_price = Prices.sell_price(material_type_id)
+
+        acc + sell_price * quantity
+      end)
+
+    unit_market_cost = item.unit_tax + market_cost / item.products.quantity
+
+    {type_id, Map.put(item, :unit_market_cost, unit_market_cost)}
+  end
+
+  def calculate_industry_prices({type_id, item}, all_items) do
+    # attempt to calculate the build value of an item using previously calculated values
+
+    materials = item.materials
+
+    industry_cost =
+      materials
+      |> Enum.reduce(0, fn {material_type_id, material}, acc ->
+        industry_type = material.industry_type
+
+        material_value =
+          case industry_type do
+            nil ->
+              # buy from market
+              Prices.sell_price(material_type_id)
+
+            _ ->
+              # build me!
+              # these are almost all 1:1 except for some dumb ccp test blueprints
+              material_blueprint_type_id =
+                material_type_id
+                |> Blueprints.blueprint_from_type()
+                |> hd()
+
+              industry_cost =
+                all_items
+                |> Map.get(material_blueprint_type_id, %{})
+                |> Map.get(:unit_industry_cost, 0.0)
+
+              industry_cost
           end
 
-        acc + tax_quantity * adjusted_price * cost_index / build_quantity
+        acc + material.quantity * material_value
       end)
 
-    # not every reaction (eg, drugs) has reaction stuff on the market
-    # need to see if it even makes sense to calculate a unit value
+    unit_industry_cost = item.unit_tax + industry_cost / item.products.quantity
 
-    calculate_unit_value =
-      Enum.reduce(materials, true, fn {type_id, _materials}, acc ->
-        acc && Cachex.get!(:min_sell_price, type_id) != nil
-      end)
-
-    unit_material_price =
-      case calculate_unit_value do
-        false ->
-          0
-
-        true ->
-          Enum.reduce(materials, 0, fn {type_id, materials}, acc ->
-            quantity = materials[:quantity]
-            acc + Cachex.get!(:min_sell_price, type_id) * quantity / build_quantity
-          end)
-      end
-
-    reprocessing = EveIndustry.Ore.single_item(data.products.productTypeID)
-
-    unit_value = unit_material_price + unit_tax
-
-    sell_price = sell_price(data.products.productTypeID)
-    buy_price = buy_price(data.products.productTypeID)
-
-    sell_margin = margin(sell_price, unit_value)
-    buy_margin = margin(buy_price, unit_value)
-    reprocessing_margin = reprocessing_margin(reprocessing[:unit_value], unit_value)
-
-    profitable = sell_margin < 1 || buy_margin < 1
-    profitable_to_reprocess = reprocessing_margin > 1
-
-    products = %{
-      type_id: data.products.productTypeID,
-      name: data.products.name.typeName,
-      group_id: data.products.name.groupID,
-      quantity: build_quantity,
-      sell_price: sell_price,
-      sell_margin: sell_margin,
-      buy_price: buy_price,
-      buy_margin: buy_margin,
-      reprocessing: reprocessing
-    }
-
-    %{
-      type_id: data.typeID,
-      name: data.typeName,
-      group_id: data.groupID,
-      market_group_id: data.marketGroupID,
-      time: build_time,
-      materials: materials,
-      build_from_market_value: unit_value,
-      build_from_industry_value: 0.0,
-      products: products,
-      profitable: profitable,
-      profitable_to_reprocess: profitable_to_reprocess,
-      reprocessing_margin: reprocessing_margin
-    }
-  end
-
-  defp margin(_market_price, unit_value) when unit_value == 0, do: 0.0
-  defp margin(market_price, _unit_value) when market_price == 0, do: 0.0
-
-  defp margin(market_price, value) do
-    Float.round(market_price / value, 2)
-  end
-
-  defp reprocessing_margin(reprocessing_unit_value, _value) when reprocessing_unit_value == 0,
-    do: 0.0
-
-  defp reprocessing_margin(_reprocessing_unit_value, value) when value == 0, do: 0.0
-
-  defp reprocessing_margin(reprocessing_unit_value, value) do
-    Float.round(reprocessing_unit_value / value, 2)
-  end
-
-  defp sell_price(type_id) do
-    case Cachex.get!(:min_sell_price, type_id) do
-      nil -> 0.0
-      x -> Float.round(x, 2)
-    end
-  end
-
-  defp buy_price(type_id) do
-    case Cachex.get!(:max_buy_price, type_id) do
-      nil -> 0.0
-      x -> Float.round(x, 2)
-    end
+    {type_id, Map.put(item, :unit_industry_cost, unit_industry_cost)}
   end
 end
