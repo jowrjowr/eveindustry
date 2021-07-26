@@ -34,9 +34,9 @@
                 <img src="https://images.evetech.net/types/<%= @standard_capital[type_id].products.type_id %>/icon?size=32">
                 <%= @standard_capital[type_id].products.name %>
             </td>
-            <td><%= format_number(@standard_capital[type_id].build_from_market_value) %></td>
-            <td><%= @standard_capital[type_id].products.sell_margin %> </td>
-            <td><%= @standard_capital[type_id].products.buy_margin %> </td>
+            <td><%= format_number(@standard_capital[type_id].unit_industry_cost) %></td>
+            <td><%= @standard_capital[type_id].sell_margin %> </td>
+            <td><%= @standard_capital[type_id].buy_margin %> </td>
         </tr>
         <% end %>
     </tbody>
@@ -63,9 +63,9 @@
                 <img src="https://images.evetech.net/types/<%= @structure[type_id].products.type_id %>/icon?size=32">
                 <%= @structure[type_id].products.name %>
             </td>
-            <td><%= format_number(@structure[type_id].build_from_market_value) %></td>
-            <td><%= @structure[type_id].products.sell_margin %> </td>
-            <td><%= @structure[type_id].products.buy_margin %> </td>
+            <td><%= format_number(@structure[type_id].unit_industry_cost) %></td>
+            <td><%= @structure[type_id].sell_margin %> </td>
+            <td><%= @structure[type_id].buy_margin %> </td>
         </tr>
         <% end %>
     </tbody>

@@ -21,11 +21,11 @@ defmodule EveIndustryWeb.Router do
     live "/ore", OreLive
     live "/reactions", ReactionsLive
     live "/structures", StructuresLive
+    live "/components", ComponentsLive
   end
 
   # Other scopes may use custom stacks.
   # scope "/api", EveIndustryWeb do
   #   pipe_through :api
   # end
-
 end

@@ -32,8 +32,38 @@ defmodule EveIndustry.Industry do
     industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
     industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
 
-    # cleanup
-    Map.new(industry, fn item -> purge_garbage(item) end)
+    # final touches
+    industry
+    |> Map.new(fn item -> purge_garbage(item) end)
+    |> Map.new(fn item -> calculate_margins(item) end)
+  end
+
+  defp calculate_margins({type_id, item}) do
+    # this is the price from buying components from the market
+
+    buy_price = Prices.buy_price(item.products.type_id)
+    sell_price = Prices.sell_price(item.products.type_id)
+
+    sell_margin =
+      case {sell_price, item.unit_industry_cost} do
+        {0.0, _} -> 0.0
+        {_, 0.0} -> 0.0
+        {x, y} -> Float.round(x / y, 2)
+      end
+
+    buy_margin =
+      case {buy_price, item.unit_industry_cost} do
+        {0.0, _} -> 0.0
+        {_, 0.0} -> 0.0
+        {x, y} -> Float.round(x / y, 2)
+      end
+
+    item =
+      item
+      |> Map.put(:sell_margin, sell_margin)
+      |> Map.put(:buy_margin, buy_margin)
+
+    {type_id, item}
   end
 
   defp purge_garbage({type_id, item}) do
