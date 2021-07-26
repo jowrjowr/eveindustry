@@ -1,8 +1,7 @@
 defmodule EveIndustry.Bonuses do
-
   alias EveIndustry.Bonuses.Manufacturing
   alias EveIndustry.Bonuses.Reactions
-  #alias EveIndustry.Bonuses.Reprocessing
+  # alias EveIndustry.Bonuses.Reprocessing
 
   def te(%{industry: :reactions, security: security, reactions: %{rig: rig, structure: structure}}) do
     # calculate reaction TE bonuses
@@ -22,18 +21,14 @@ defmodule EveIndustry.Bonuses do
     1.0
   end
 
-  def me(%{industry: :reactions, security: security, reactions: %{rig: rig}}) do
+  def me(:reactions, security, %{rig: rig}) do
     Reactions.rig_me_bonus(security, rig)
   end
 
-  def me(%{industry: :manufacturing, security: security, manufacturing: %{rig: rig, structure: structure}}) do
-
+  def me(:manufacturing, security, %{rig: rig, structure: structure}) do
     rig_bonus = Manufacturing.rig_me_bonus(security, rig)
     hull_bonus = Manufacturing.structure_hull_me_bonus(structure)
 
     rig_bonus * hull_bonus
-
   end
-
-
 end

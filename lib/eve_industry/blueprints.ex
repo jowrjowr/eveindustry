@@ -91,9 +91,6 @@ defmodule EveIndustry.Blueprints do
     }
   end
 
-  defp material_details(material) do
-  end
-
   def item_industry_type(product_type_id) do
     # determine blueprint details, if any
     query =

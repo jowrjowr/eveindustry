@@ -1,10 +1,14 @@
 defmodule EveIndustry.Industry do
-  alias EveIndustry.Blueprints
-  alias EveIndustry.Bonuses
-  alias EveIndustry.Formulas
-  alias EveIndustry.Prices
-  import EveIndustry.Formulas, only: [material_amount: 4]
+  alias EveIndustry.{
+    Blueprints,
+    Bonuses,
+    Formulas,
+    Prices
+  }
 
+  # core temp regulator bp 57516
+  # capital version 57524
+  # pressurized oxidizers bp 57492
   def calculate(config) do
     industry =
       Blueprints.everything()
@@ -38,15 +42,44 @@ defmodule EveIndustry.Industry do
     item =
       item
       |> Map.delete(:blueprint)
-      |> Map.delete(:unit_tax)
+
+    # |> Map.delete(:unit_tax)
 
     {type_id, item}
   end
 
   defp calculate_yields(config, {type_id, item}) do
     batch_size = Map.get(config, :batch_size, 20)
-    blueprint_me = Map.get(config, :blueprint_me, 0)
-    me_bonus = Bonuses.me(config)
+    security = Map.get(config, :security, :lowsec)
+
+    manufacturing_config =
+      Map.get(config, :manufacturing, %{
+        rig: :t1,
+        structure: :azbel
+      })
+
+    reactions_config =
+      Map.get(config, :reactions, %{
+        rig: :t2,
+        structure: :athanor
+      })
+
+    # reactions are a blueprint with ME0 and TE0, for industry calc purposes.
+
+    {me_bonus, blueprint_me} =
+      case item.industry_type do
+        :manufacturing ->
+          blueprint_me = Map.get(config, :blueprint_me, 0)
+          me_bonus = Bonuses.me(:manufacturing, security, manufacturing_config)
+          {me_bonus, blueprint_me}
+
+        :reactions ->
+          me_bonus = Bonuses.me(:reactions, security, reactions_config)
+          {me_bonus, 0}
+
+        _ ->
+          {1.0, 0}
+      end
 
     blueprint = item.blueprint
     build_quantity = blueprint.products.quantity * batch_size
@@ -57,7 +90,8 @@ defmodule EveIndustry.Industry do
         material_type_id = material.materialTypeID
         material_industry_type = Blueprints.item_industry_type(material_type_id)
 
-        material_quantity = material_amount(blueprint_me, me_bonus, material.quantity, batch_size)
+        material_quantity =
+          Formulas.material_amount(blueprint_me, me_bonus, material.quantity, batch_size)
 
         result = %{
           type_id: material_type_id,
@@ -95,7 +129,7 @@ defmodule EveIndustry.Industry do
 
     build_tax =
       Enum.reduce(blueprint.materials, 0, fn material, acc ->
-        tax_quantity = material_amount(0, 1.0, material.quantity, batch_size)
+        tax_quantity = Formulas.material_amount(0, 1.0, material.quantity, batch_size)
         adjusted_price = Prices.adjusted_price(material.materialTypeID)
 
         material_tax = tax_quantity * adjusted_price * cost_index
@@ -103,7 +137,7 @@ defmodule EveIndustry.Industry do
         acc + material_tax
       end)
 
-    unit_tax = build_tax / batch_size
+    unit_tax = build_tax / item.products.quantity
 
     {type_id, Map.put(item, :unit_tax, unit_tax)}
   end
