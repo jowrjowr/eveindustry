@@ -61,7 +61,9 @@ defmodule EveIndustry.Industry do
     item =
       item
       |> Map.put(:sell_margin, sell_margin)
+      |> Map.put(:sell_price, sell_price)
       |> Map.put(:buy_margin, buy_margin)
+      |> Map.put(:buy_price, buy_price)
 
     {type_id, item}
   end

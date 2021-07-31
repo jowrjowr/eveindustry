@@ -1,6 +1,5 @@
 <h2>Reactions</h2>
-
-<%= f = form_for :form, "#", [phx_change: :select] %>
+<%= f = form_for :form, "#", [phx_submit: :submit] %>
 <div class="configuration">
 <br>Configuration</br>
     <br>
@@ -10,8 +9,37 @@
     <br>
     Reaction structure: <%= select(f, :structure, select_reaction_structure()) %>
     <br>
+    <%= submit "SUBMIT" %>
 </div>
 <br>
+
+<%= if @shopping_list != nil do %>
+
+    <h3>SHOPPING LIST</h3>
+    <table>
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Total</th>
+            <th>Stockpile</th>
+            <th>Purchase Amount</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@shopping_list) do %>
+        <tr>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @shopping_list[type_id].type_id %>/icon?size=32">
+                <%= @shopping_list[type_id].name %>
+            </td>
+            <td><%= format_number(@shopping_list[type_id].quantity.total) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.stockpile) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.purchase) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+<% end %>
 
 <h3>Intermediary</h3>
 <div class="intermediary">
@@ -57,9 +85,9 @@
             </td>
             <td><%= reaction_inputs(@intermediary[type_id], 1).quantity %></td>
             <td><%= format_number(@intermediary[type_id].products.quantity) %></td>
-            <td><%= format_number(@intermediary[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@intermediary[type_id].products.sell_price) %> (<%= @intermediary[type_id].products.sell_margin %>) </td>
-            <td><%= format_number(@intermediary[type_id].products.buy_price) %> (<%= @intermediary[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@intermediary[type_id].unit_market_cost) %></td>
+            <td><%= format_number(@intermediary[type_id].sell_price) %> (<%= @intermediary[type_id].sell_margin %>) </td>
+            <td><%= format_number(@intermediary[type_id].buy_price) %> (<%= @intermediary[type_id].buy_margin %>) </td>
             <td><%= format_number(@intermediary[type_id].build_from_alchemy_value) %> (<%= @intermediary[type_id].alchemy_margin %>) </td>
         </tr>
         <% end %>
@@ -93,7 +121,6 @@
 
     <tbody id="items">
         <%= for type_id <- Map.keys(@advanced) do %>
-        <%= f = form_for :"#{type_id}", "#", [phx_change: :select] %>
         <tr>
             <td>
                 <img src="https://images.evetech.net/types/<%= @advanced[type_id].products.type_id %>/icon?size=32">
@@ -126,11 +153,10 @@
             </td>
             <td><%= reaction_inputs(@advanced[type_id], 3).quantity %></td>
             <td><%= format_number(@advanced[type_id].products.quantity) %></td>
-            <td><%= format_number(@advanced[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@advanced[type_id].products.sell_price) %> (<%= @advanced[type_id].products.sell_margin %>) </td>
-            <td><%= format_number(@advanced[type_id].products.buy_price) %> (<%= @advanced[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@advanced[type_id].unit_market_cost) %></td>
+            <td><%= format_number(@advanced[type_id].sell_price) %> (<%= @advanced[type_id].sell_margin %>) </td>
+            <td><%= format_number(@advanced[type_id].buy_price) %> (<%= @advanced[type_id].buy_margin %>) </td>
         </tr>
-        </form>
         <% end %>
     </tbody>
     </table>
@@ -193,9 +219,9 @@
             </td>
             <td><%= reaction_inputs(@gas_phase[type_id], 3).quantity %></td>
             <td><%= format_number(@gas_phase[type_id].products.quantity) %></td>
-            <td><%= format_number(@gas_phase[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@gas_phase[type_id].products.sell_price) %> (<%= @gas_phase[type_id].products.sell_margin %>) </td>
-            <td><%= format_number(@gas_phase[type_id].products.buy_price) %> (<%= @gas_phase[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@gas_phase[type_id].unit_market_cost) %></td>
+            <td><%= format_number(@gas_phase[type_id].sell_price) %> (<%= @gas_phase[type_id].sell_margin %>) </td>
+            <td><%= format_number(@gas_phase[type_id].buy_price) %> (<%= @gas_phase[type_id].buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -252,9 +278,9 @@
             </td>
             <td><%= reaction_inputs(@polymer[type_id], 2).quantity %></td>
             <td><%= format_number(@polymer[type_id].products.quantity) %></td>
-            <td><%= format_number(@polymer[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@polymer[type_id].products.sell_price) %> (<%= @polymer[type_id].products.sell_margin %>) </td>
-            <td><%= format_number(@polymer[type_id].products.buy_price) %> (<%= @polymer[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@polymer[type_id].unit_market_cost) %></td>
+            <td><%= format_number(@polymer[type_id].sell_price) %> (<%= @polymer[type_id].sell_margin %>) </td>
+            <td><%= format_number(@polymer[type_id].buy_price) %> (<%= @polymer[type_id].buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>
@@ -311,9 +337,9 @@
             </td>
             <td><%= reaction_inputs(@booster[type_id], 2).quantity %></td>
             <td><%= format_number(@booster[type_id].products.quantity) %></td>
-            <td><%= format_number(@booster[type_id].build_from_market_value) %></td>
-            <td><%= format_number(@booster[type_id].products.sell_price) %> (<%= @booster[type_id].products.sell_margin %>) </td>
-            <td><%= format_number(@booster[type_id].products.buy_price) %> (<%= @booster[type_id].products.buy_margin %>) </td>
+            <td><%= format_number(@booster[type_id].unit_market_cost) %></td>
+            <td><%= format_number(@booster[type_id].sell_price) %> (<%= @booster[type_id].sell_margin %>) </td>
+            <td><%= format_number(@booster[type_id].buy_price) %> (<%= @booster[type_id].buy_margin %>) </td>
         </tr>
         <% end %>
     </tbody>

@@ -39,53 +39,56 @@ defmodule EveIndustryWeb.ReactionsLive do
     booster = reaction_group(712, reactions)
     polymer = reaction_group(974, reactions)
 
-    {:ok,
-     assign(
-       socket,
-       intermediary: intermediary,
-       advanced: advanced,
-       gas_phase: gas_phase,
-       booster: booster,
-       polymer: polymer
-     )}
+    socket =
+      socket
+      |> assign(shopping_list: nil)
+      |> assign(intermediary: intermediary)
+      |> assign(advanced: advanced)
+      |> assign(gas_phase: gas_phase)
+      |> assign(booster: booster)
+      |> assign(polymer: polymer)
+
+    {:ok, socket}
   end
 
   @impl true
-  def handle_event(event, %{"form" => form}, socket) do
+  def handle_event(_event, %{"form" => form}, socket) do
     config = %{
       industry: :reactions,
       batch_size: 88,
       solar_system_id: 30_002_538,
-      blueprint_me: 0,
-      blueprint_te: 0,
-      security: String.to_atom(Map.get(form, "security")),
+      blueprint_me: 10,
+      blueprint_te: 20,
+      security: String.to_atom(form["security"]),
+      manufacturing: %{
+        rig: String.to_atom(form["rig"]),
+        structure: String.to_atom(form["structure"])
+      },
       reactions: %{
-        rig: String.to_atom(Map.get(form, "rig")),
-        structure: String.to_atom(Map.get(form, "structure"))
+        rig: String.to_atom(form["rig"]),
+        structure: String.to_atom(form["structure"])
       }
     }
 
-    build =
-      form
-      |> Map.drop(["rig", "security", "structure"])
-      |> Map.new(fn {type_id, quantity} -> build_input_transform(type_id, quantity) end)
+    # group ids
+    # structure: 447
+    # standard capital: 873
 
-    # shopping_list = EveIndustry.Industry.shopping_list(config, build)
+    everything = EveIndustry.Industry.calculate(config)
 
-    {:noreply, assign(socket, shopping_list: %{})}
-  end
+    # first level shopping list. intermediary
+    shopping_list = shopping_list(everything, form)
+    shopping_list = reduce_shopping_list(shopping_list, everything)
 
-  defp build_input_transform(type_id, "") do
-    type_id = String.to_integer(type_id)
+    IO.inspect(shopping_list)
 
-    {type_id, 0}
-  end
+    # reduce again
 
-  defp build_input_transform(type_id, quantity) do
-    type_id = String.to_integer(type_id)
-    quantity = String.to_integer(quantity)
+    socket =
+      socket
+      |> assign(shopping_list: shopping_list)
 
-    {type_id, quantity}
+    {:noreply, socket}
   end
 
   defp reaction_group(group_id, reactions) do

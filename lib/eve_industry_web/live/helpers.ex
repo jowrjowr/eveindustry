@@ -116,8 +116,57 @@ defmodule EveIndustryWeb.Live.Helpers do
   def format_number(0), do: nil
   def format_number(value), do: Number.Delimit.number_to_delimited(value, precision: 0)
 
+  def reduce_shopping_list(shopping_list, items) do
+    reduced =
+      shopping_list
+      |> Enum.reduce(%{}, fn {type_id, item}, acc ->
+        result =
+          case EveIndustry.Blueprints.blueprint_from_type(type_id) do
+            nil ->
+              # cannot be reduced further.
+
+              {old_material, acc} = Map.pop(acc, type_id, %{})
+              total_material = Map.merge(old_material, item, &map_merge/3)
+              Map.put(acc, type_id, total_material)
+
+            x ->
+              # has a blueprint. fetch what it is made from.
+              IO.inspect(x)
+              item_blueprint_id = hd(x)
+
+              materials = items[item_blueprint_id].materials
+
+              jobs = item.quantity.purchase / items[item_blueprint_id].products.quantity
+              jobs = Float.ceil(jobs)
+
+              data =
+                Enum.reduce(materials, %{}, fn {material_type_id, material}, inner_acc ->
+                  data = %{
+                    name: material.name,
+                    type_id: material.type_id,
+                    quantity: material.quantity * jobs
+                  }
+
+                  Map.put(inner_acc, material_type_id, data)
+                end)
+
+              Map.merge(acc, data, &map_merge/3)
+          end
+
+        Map.merge(acc, result, &map_merge/3)
+      end)
+      |> Enum.reduce(%{}, fn {k, data}, acc ->
+        # account for the stockpile
+        Map.merge(acc, %{k => subtract_stockpile(data)})
+      end)
+
+    Map.merge(shopping_list, reduced, &map_merge/3)
+  end
+
   def shopping_list(items, form) do
     # what is being built, and how much?
+
+    :ok = EveIndustry.Stockpile.parse()
 
     total_manifest =
       form
@@ -156,7 +205,6 @@ defmodule EveIndustryWeb.Live.Helpers do
 
   defp map_merge(_key, v1, v2) do
     # zip all this crap together.
-
     %{name: name, quantity: q1, type_id: type_id} = v1
     %{quantity: q2} = v2
 
