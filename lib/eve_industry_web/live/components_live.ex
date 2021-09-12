@@ -21,7 +21,7 @@ defmodule EveIndustryWeb.ComponentsLive do
     # structure: 447
     # standard cap components: 915
 
-    market_groups = [1913, 2770, 1592, 1593, 1594, 1595, 796]
+    market_groups = [1913, 2770, 1592, 1593, 1594, 1595, 796, 1592, 1593, 1594, 1595]
 
     components =
       config
@@ -31,14 +31,17 @@ defmodule EveIndustryWeb.ComponentsLive do
 
     structure = group_filter(components, 536)
     standard_capital = group_filter(components, 873)
+    t2 = group_filter(components, 334)
     shopping_list = nil
 
-    {:ok,
-     assign(socket,
-       structure: structure,
-       standard_capital: standard_capital,
-       shopping_list: shopping_list
-     )}
+    data = %{
+      structure: structure,
+      standard_capital: standard_capital,
+      t2: t2,
+      shopping_list: shopping_list
+    }
+
+    {:ok, assign(socket, data)}
   end
 
   @impl true

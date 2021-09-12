@@ -44,6 +44,9 @@ defmodule EveIndustry.Industry do
     buy_price = Prices.buy_price(item.products.type_id)
     sell_price = Prices.sell_price(item.products.type_id)
 
+    # the idea is to know how much a given run makes, in millions of isk.
+    batch_profit = item.products.quantity * (sell_price - item.unit_industry_cost) / 1_000_000
+
     sell_margin =
       case {sell_price, item.unit_industry_cost} do
         {0.0, _} -> 0.0
@@ -64,6 +67,7 @@ defmodule EveIndustry.Industry do
       |> Map.put(:sell_price, sell_price)
       |> Map.put(:buy_margin, buy_margin)
       |> Map.put(:buy_price, buy_price)
+      |> Map.put(:batch_profit, batch_profit)
 
     {type_id, item}
   end

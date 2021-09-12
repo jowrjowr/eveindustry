@@ -71,6 +71,35 @@
     </tbody>
     </table>
 </div>
+
+<h3>T2 components</h3>
+<div class="t2">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@t2) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @t2[type_id].products.type_id %>/icon?size=32">
+                <%= @t2[type_id].products.name %>
+            </td>
+            <td><%= format_number(@t2[type_id].unit_industry_cost) %></td>
+            <td><%= @t2[type_id].sell_margin %> </td>
+            <td><%= @t2[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
 </form>
 
 <%= if @shopping_list != nil do %>

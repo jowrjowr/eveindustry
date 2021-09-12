@@ -78,9 +78,6 @@ defmodule EveIndustryWeb.ReactionsLive do
 
     # first level shopping list. intermediary
     shopping_list = shopping_list(everything, form)
-    shopping_list = reduce_shopping_list(shopping_list, everything)
-
-    IO.inspect(shopping_list)
 
     # reduce again
 
