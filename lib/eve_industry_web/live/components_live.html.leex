@@ -14,6 +14,34 @@
 </div>
 <br>
 
+<%= if @shopping_list != nil do %>
+
+    <h3>SHOPPING LIST</h3>
+    <table>
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Total</th>
+            <th>Stockpile</th>
+            <th>Purchase Amount</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@shopping_list) do %>
+        <tr>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @shopping_list[type_id].type_id %>/icon?size=32">
+                <%= @shopping_list[type_id].name %>
+            </td>
+            <td><%= format_number(@shopping_list[type_id].quantity.total) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.stockpile) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.purchase) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+<% end %>
+
 <h3>Capital</h3>
 <div class="standard_capital">
     <table>

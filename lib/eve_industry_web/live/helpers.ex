@@ -59,8 +59,8 @@ defmodule EveIndustryWeb.Live.Helpers do
 
   def select_reaction_structure() do
     [
-      Athanor: :athanor,
       Tatara: :tatara,
+      Athanor: :athanor,
       Station: :station
     ]
   end

@@ -16,18 +16,18 @@ defmodule EveIndustryWeb.ReactionsLive do
     # 1136: fuel blocks
 
     # 7 days athanor: 88
-    # 7 days tatara: 125
+    # 7 days tatara: 123
 
     config = %{
       industry: :reactions,
-      batch_size: 88,
+      batch_size: 122,
       solar_system_id: 30_002_538,
       blueprint_me: 0,
       blueprint_te: 0,
       security: :lowsec,
       reactions: %{
         rig: :t2,
-        structure: :athanor
+        structure: :tatara
       }
     }
 
@@ -55,10 +55,10 @@ defmodule EveIndustryWeb.ReactionsLive do
   def handle_event(_event, %{"form" => form}, socket) do
     config = %{
       industry: :reactions,
-      batch_size: 88,
+      batch_size: 122,
       solar_system_id: 30_002_538,
-      blueprint_me: 10,
-      blueprint_te: 20,
+      blueprint_me: 0,
+      blueprint_te: 0,
       security: String.to_atom(form["security"]),
       manufacturing: %{
         rig: String.to_atom(form["rig"]),

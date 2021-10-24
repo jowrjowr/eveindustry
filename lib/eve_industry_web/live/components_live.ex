@@ -7,13 +7,17 @@ defmodule EveIndustryWeb.ComponentsLive do
     config = %{
       industry: :manufacturing,
       solar_system_id: 30_002_538,
-      batch_size: 20,
+      batch_size: 1000,
       blueprint_me: 10,
       blueprint_te: 20,
       security: :lowsec,
       manufacturing: %{
         rig: :t1,
         structure: :azbel
+      },
+      reactions: %{
+        rig: :t2,
+        structure: :tatara
       }
     }
 
@@ -46,6 +50,7 @@ defmodule EveIndustryWeb.ComponentsLive do
 
   @impl true
   def handle_event(_event, %{"form" => form}, socket) do
+
     config = %{
       industry: :manufacturing,
       batch_size: 20,
