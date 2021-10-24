@@ -3,7 +3,6 @@ defmodule EveIndustry.Ore do
   require Logger
 
   def all_alchemy() do
-
     query =
       from(r in EveIndustry.Schema.Derived.Reprocessing,
         where: r.published == true,
@@ -11,7 +10,7 @@ defmodule EveIndustry.Ore do
         where: like(r.typeName, "Unrefined%"),
         preload: [
           :reprocessing,
-          reprocessing: [ :name ]
+          reprocessing: [:name]
         ]
       )
 
@@ -21,29 +20,28 @@ defmodule EveIndustry.Ore do
 
     unrefined =
       alchemy
-      |> Enum.reduce([], fn item, acc -> [ item.typeID ] ++ acc end)
-      |> Map.new(fn type_id -> {
-        type_id,
-        calculate_prices(
+      |> Enum.reduce([], fn item, acc -> [item.typeID] ++ acc end)
+      |> Map.new(fn type_id ->
+        {
           type_id,
-          Enum.filter(alchemy, fn item -> item.typeID == type_id end),
-          scrapmetal_bonuses()
-        )
-      }
+          calculate_prices(
+            type_id,
+            Enum.filter(alchemy, fn item -> item.typeID == type_id end),
+            scrapmetal_bonuses()
+          )
+        }
       end)
 
     unrefined
-
   end
 
   def single_item(type_id) do
-
     query =
       from(r in EveIndustry.Schema.Derived.Reprocessing,
         where: r.typeID == ^type_id,
         preload: [
           :reprocessing,
-          reprocessing: [ :name ]
+          reprocessing: [:name]
         ]
       )
 
@@ -56,11 +54,9 @@ defmodule EveIndustry.Ore do
       data,
       scrapmetal_bonuses()
     )
-
   end
 
   def compressed(security \\ :lowsec, implant \\ :four_percent, rig \\ :t2, structure \\ :athanor) do
-
     # easier to hardcode all the fucking compressed ore type ids
 
     # exclude this stuff
@@ -69,14 +65,18 @@ defmodule EveIndustry.Ore do
 
     excluded = not_ore ++ ice_ores
 
+    # special kinda-compressed pochven ore Talassonite
+    included = [52306, 56626, 56625]
+
     query =
       from(r in EveIndustry.Schema.Derived.Reprocessing,
         where: r.typeID not in ^excluded,
         where: r.published == true,
         where: like(r.typeName, "Compressed%"),
+        or_where: r.typeID in ^included,
         preload: [
           :reprocessing,
-          reprocessing: [ :name ]
+          reprocessing: [:name]
         ]
       )
 
@@ -86,20 +86,20 @@ defmodule EveIndustry.Ore do
 
     ore =
       sde_ore
-      |> Enum.reduce([], fn item, acc -> [ item.typeID ] ++ acc end)
-      |> Map.new(fn type_id -> {
-        type_id,
-        calculate_prices(
+      |> Enum.reduce([], fn item, acc -> [item.typeID] ++ acc end)
+      |> Map.new(fn type_id ->
+        {
           type_id,
-          Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
-          bonuses(implant, structure, security, rig)
-        )
-      }
+          calculate_prices(
+            type_id,
+            Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
+            bonuses(implant, structure, security, rig)
+          )
+        }
       end)
 
     ore
   end
-
 
   defp calculate_prices(type_id, data, refine_fraction) do
     # reduce down the SDE spew to something a little more managable:
@@ -112,18 +112,17 @@ defmodule EveIndustry.Ore do
       |> Map.from_struct()
       |> Map.get(:reprocessing)
       |> Enum.reduce([], fn item, acc ->
-        acc ++ [{item.materialTypeID, item.quantity * refine_fraction, item.name}]
+        acc ++
+          [{item.materialTypeID, item.quantity * refine_fraction / data.portionSize, item.name}]
       end)
 
     unit_value =
       yield
       |> Enum.reduce(0, fn {type_id, amount, _}, acc ->
-
         case Cachex.get!(:min_sell_price, type_id) do
           nil -> 0
           x -> acc + x * amount
         end
-
       end)
 
     unit_value =
@@ -134,7 +133,9 @@ defmodule EveIndustry.Ore do
 
     yield =
       yield
-      |> Map.new(fn {type_id, amount, type_data} -> {type_id, %{ type_id: type_id, amount: amount, type_data: type_data} } end)
+      |> Map.new(fn {type_id, amount, type_data} ->
+        {type_id, %{type_id: type_id, amount: amount, type_data: type_data}}
+      end)
 
     yield_types = Map.keys(yield)
 
@@ -149,7 +150,6 @@ defmodule EveIndustry.Ore do
         nil -> 0
         x -> Float.round(x, 2)
       end
-
 
     sell_margin =
       case sell_price do
@@ -176,7 +176,6 @@ defmodule EveIndustry.Ore do
       :name => data.typeName,
       :profitable => profitable
     }
-
   end
 
   defp scrapmetal_bonuses() do
@@ -210,7 +209,6 @@ defmodule EveIndustry.Ore do
   end
 
   defp rig_bonus(security, rig) do
-
     # the bonusing is the same across all structure, rig, and security permutations
 
     base =
@@ -229,7 +227,6 @@ defmodule EveIndustry.Ore do
       end
 
     base * security_multiplier
-
   end
 
   defp structure_bonus(structure) do
@@ -249,5 +246,4 @@ defmodule EveIndustry.Ore do
       _ -> 1
     end
   end
-
 end
