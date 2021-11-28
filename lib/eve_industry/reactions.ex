@@ -22,34 +22,32 @@ defmodule EveIndustry.Reactions do
       config
       |> EveIndustry.Industry.calculate()
       |> Enum.filter(fn {_type_id, %{market_group_id: x}} -> x in reaction_market_groups end)
+      |> Enum.map(fn {type_id, data} ->
+        slot_value = calculate_slot_value(data) * data.products.quantity
 
-    reactions =
-      reactions
-      |> Enum.reduce([], fn {type_id, data}, acc ->
-        alchemy = alchemy(data.products.name)
-        # alchemy_value = calculate_alchemy_price(alchemy, reactions)
-        alchemy_value = 0.0
-
-        alchemy_margin =
-          case alchemy_value do
-            0.0 -> 0.0
-            _ -> Float.round(data.unit_market_cost / alchemy_value, 2)
-          end
-
-        alchemy_profitable = alchemy_margin < 1
-
-        map =
-          data
-          |> Map.put(:alchemy_margin, alchemy_margin)
-          |> Map.put(:alchemy_profitable, alchemy_profitable)
-          |> Map.put(:build_from_alchemy_value, alchemy_value)
-
-        acc ++ [{type_id, map}]
+        {type_id, Map.put(data, :slot_value, slot_value)}
       end)
-      |> Enum.filter(fn {_type_id, item} -> String.contains?(item.name, "Unrefined") == false end)
       |> Map.new()
 
     reactions
+  end
+
+  def calculate_alchemy(reactions) do
+    reactions
+    |> Map.to_list()
+    |> Enum.filter(fn {_type_id, item} -> String.contains?(item.name, "Unrefined") == true end)
+    |> Enum.reduce([], fn {type_id, data}, acc ->
+      alchemy = calculate_alchemy_products(data, reactions)
+      slot_value = (alchemy.unit_value - data.unit_industry_cost) * data.products.quantity
+
+      map =
+        data
+        |> Map.put(:alchemy, alchemy)
+        |> Map.put(:slot_value, slot_value)
+
+      acc ++ [{type_id, map}]
+    end)
+    |> Map.new()
   end
 
   def alchemy(type_name) do
@@ -69,66 +67,98 @@ defmodule EveIndustry.Reactions do
     EveIndustry.Repo.one(query)
   end
 
-  defp calculate_alchemy_price(nil, _), do: 0.0
+  defp calculate_slot_value(item) do
+    # need some sense of what a reaction is worth in terms of how many reaction slots
+    # it and its' precursors consume
 
-  defp calculate_alchemy_price(%{typeID: alchemy_product_type_id}, reactions) do
+    precursor_slots =
+      item.materials
+      |> Enum.filter(fn {_type_id, %{industry_type: x}} -> x == :reactions end)
+      |> length()
+
+    slots = precursor_slots + 1
+
+    (item.sell_price - item.unit_industry_cost) / slots
+  end
+
+  defp calculate_alchemy_products(item, reactions) do
     # 46172 - ferrofluid reaction formula
     # 46197 - unrefined ferrofluid reaction formula
 
-    # the idea is to directly compare alchemy against its counterpart using raw build costs
+    # the idea is to directly compare alchemy against its counterpart using raw build costs rather
+    # than what the alchemy products sell for in jita, which is garbage and who cares.
 
-    {_, alchemy_data} =
+    alchemy_product = EveIndustry.Ore.single_item(item.products.type_id)
+
+    # alchemy goes either like this:
+    # goo1 + goo2 + fuel block = unrefined intermediary -> goo1 + intermediary
+    #
+    # or like this:
+    # goo1 + goo2 + fuel block = unrefined intermediary -> intermediary
+
+    {intermediary_type_id, goo_1_type_id} = alchemy_type_ids(alchemy_product, item)
+
+    [intermediary_unit_industry_cost] =
       reactions
-      |> Enum.filter(fn {_type_id, data} -> data.products.type_id == alchemy_product_type_id end)
-      |> hd()
+      |> Enum.filter(fn {_type_id, data} -> data.products.type_id == intermediary_type_id end)
+      |> Enum.map(fn {_type_id, data} -> data.unit_industry_cost end)
 
-    # there is always an alchemy product
+    goo_unit_cost = EveIndustry.Prices.sell_price(goo_1_type_id)
 
-    alchemy_product =
-      alchemy_data.products.reprocessing.yield
-      |> alchemy_product_yield()
+    alchemy_refine_portion = alchemy_product.yield[intermediary_type_id].type_data.portionSize
+    intermediary_refine_amount = alchemy_product.yield[intermediary_type_id].amount / alchemy_refine_portion
 
-    # ...but not always a goo product
+    goo_refine_amount = goo_refine_amount(alchemy_product, goo_1_type_id)
 
-    alchemy_goo_product =
-      alchemy_data.products.reprocessing.yield
-      |> alchemy_goo_yield()
+    value = intermediary_refine_amount * intermediary_unit_industry_cost + goo_unit_cost * goo_refine_amount
 
-    alchemy_goo_value =
-      case alchemy_goo_product do
-        nil ->
-          0.0
-
-        _ ->
-          EveIndustry.Prices.fetch(alchemy_goo_product[:type_id])[:min_sell_price] *
-            alchemy_goo_product[:amount]
+    margin =
+      case value do
+        0.0 -> 0.0
+        _ -> Float.round(value / item.unit_industry_cost, 2)
       end
 
-    # the desired result is the unit value of the alchemy main product
-    # industry/market value are the same here.
+    intermediary_name = alchemy_product.yield[intermediary_type_id].type_data.typeName
 
-    (alchemy_data[:unit_market_cost] - alchemy_goo_value) / alchemy_product[:amount]
+    goo_name =
+      case goo_1_type_id do
+        nil -> nil
+        _ -> item.materials[goo_1_type_id].name
+      end
+
+    %{
+      unit_value: value,
+      margin: margin,
+      goo: %{
+        type_id: goo_1_type_id,
+        name: goo_name,
+        amount: goo_refine_amount * item.products.quantity
+      },
+      intermediary: %{
+        type_id: intermediary_type_id,
+        name: intermediary_name,
+        amount: intermediary_refine_amount * item.products.quantity
+      }
+    }
   end
 
-  defp alchemy_product_yield(data) do
-    {_, result} =
-      data
-      |> Enum.filter(fn {_type_id, item} -> item.type_data.marketGroupID == 500 end)
-      |> hd()
-
-    result
+  defp goo_refine_amount(_alchemy_product, nil) do
+    0.0
   end
 
-  defp alchemy_goo_yield([]), do: nil
+  defp goo_refine_amount(alchemy_product, type_id) do
+    alchemy_refine_portion = alchemy_product.yield[type_id].type_data.portionSize
+    alchemy_product.yield[type_id].amount / alchemy_refine_portion
+  end
 
-  defp alchemy_goo_yield(data) do
-    result =
-      data
-      |> Enum.filter(fn {_type_id, item} -> item.type_data.marketGroupID == 501 end)
+  defp alchemy_type_ids(%{yield_types: [intermediary_type_id]}, _item) do
+    {intermediary_type_id, nil}
+  end
 
-    case result do
-      [] -> nil
-      [{_, data}] -> data
-    end
+  defp alchemy_type_ids(%{yield_types: yield_types}, item) do
+    [intermediary_type_id] = Enum.filter(yield_types, fn type_id -> type_id not in Map.keys(item.materials) end)
+    [goo_1_type_id] = Enum.filter(yield_types, fn type_id -> type_id in Map.keys(item.materials) end)
+
+    {intermediary_type_id, goo_1_type_id}
   end
 end

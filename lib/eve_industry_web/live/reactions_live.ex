@@ -33,20 +33,34 @@ defmodule EveIndustryWeb.ReactionsLive do
 
     reactions = calculate(config)
 
+    reactions = Enum.filter(reactions, fn {_type_id, %{name: name}} -> String.contains?(name, "Unrefined") == false end)
+
     intermediary = reaction_group(428, reactions)
     advanced = reaction_group(429, reactions)
     gas_phase = reaction_group(4096, reactions)
     booster = reaction_group(712, reactions)
     polymer = reaction_group(974, reactions)
 
-    socket =
-      socket
-      |> assign(shopping_list: nil)
-      |> assign(intermediary: intermediary)
-      |> assign(advanced: advanced)
-      |> assign(gas_phase: gas_phase)
-      |> assign(booster: booster)
-      |> assign(polymer: polymer)
+    # alchemy takes twice as long as every other reaction. keeping same time scale.
+
+    alchemy_batch_size = floor(config.batch_size / 2)
+
+    config = %{config | batch_size: alchemy_batch_size}
+
+    reactions = calculate(config)
+    alchemy = calculate_alchemy(reactions)
+
+    data = %{
+      shopping_list: nil,
+      alchemy: alchemy,
+      intermediary: intermediary,
+      advanced: advanced,
+      gas_phase: gas_phase,
+      booster: booster,
+      polymer: polymer
+    }
+
+    socket = assign(socket, data)
 
     {:ok, socket}
   end
@@ -74,12 +88,21 @@ defmodule EveIndustryWeb.ReactionsLive do
     # structure: 447
     # standard capital: 873
 
-    everything = EveIndustry.Industry.calculate(config)
+    everything_except_alchemy = EveIndustry.Industry.calculate(config)
+
+    alchemy_batch_size = floor(config.batch_size / 2)
+    config = %{config | batch_size: alchemy_batch_size}
+
+    alchemy =
+      config
+      |> calculate()
+      |> Enum.filter(fn {_type_id, %{name: name}} -> String.contains?(name, "Unrefined") == true end)
+      |> Map.new()
+
+    everything = Map.merge(everything_except_alchemy, alchemy)
 
     # first level shopping list. intermediary
     shopping_list = shopping_list(everything, form)
-
-    # reduce again
 
     socket =
       socket

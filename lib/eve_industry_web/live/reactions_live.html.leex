@@ -41,6 +41,77 @@
     </table>
 <% end %>
 
+<h3>Alchemy (TAKES TWICE AS LONG)</h3>
+<div class="alchemy">
+    <table>
+    <thead>
+        <tr>
+            <th>Reaction</th>
+            <th>Batches</th>
+            <th>Fuel Block</th>
+            <th>Quantity</th>
+            <th>Material #1</th>
+            <th>Quantity</th>
+            <th>Material #2</th>
+            <th>Quantity</th>
+            <th>Batch Output</th>
+            <th>Unit Cost</th>
+            <th>Sell Price</th>
+            <th>Buy Price</th>
+            <th>Alchemy Price</th>
+            <th>Goo</th>
+            <th>Amount</th>
+            <th>Intermediary</th>
+            <th>Amount</th>
+            <th>Slot Value</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@alchemy) do %>
+        <tr>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @alchemy[type_id].products.type_id %>/icon?size=32">
+                <%= @alchemy[type_id].products.name %>
+            </td>
+            <td><%= number_input f, :"#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= reaction_fuel(@alchemy[type_id]).type_id %>/icon?size=32">
+                <%= reaction_fuel(@alchemy[type_id]).name %>
+            </td>
+            <td><%= reaction_fuel(@alchemy[type_id]).quantity %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= reaction_inputs(@alchemy[type_id], 0).type_id %>/icon?size=32">
+                <%= reaction_inputs(@alchemy[type_id], 0).name %>
+            </td>
+            <td><%= reaction_inputs(@alchemy[type_id], 0).quantity %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= reaction_inputs(@alchemy[type_id], 1).type_id %>/icon?size=32">
+                <%= reaction_inputs(@alchemy[type_id], 1).name %>
+            </td>
+            <td><%= reaction_inputs(@alchemy[type_id], 1).quantity %></td>
+            <td><%= format_number(@alchemy[type_id].products.quantity) %></td>
+            <td><%= format_number(@alchemy[type_id].unit_industry_cost) %></td>
+            <td><%= format_number(@alchemy[type_id].sell_price) %> (<%= @alchemy[type_id].sell_margin %>) </td>
+            <td><%= format_number(@alchemy[type_id].buy_price) %> (<%= @alchemy[type_id].buy_margin %>) </td>
+            <td><%= format_number(@alchemy[type_id].alchemy.unit_value) %> (<%= @alchemy[type_id].alchemy.margin %>) </td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @alchemy[type_id].alchemy.goo.type_id %>/icon?size=32">
+                <%= @alchemy[type_id].alchemy.goo.name %>
+            </td>
+            <td><%= format_number(@alchemy[type_id].alchemy.goo.amount) %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @alchemy[type_id].alchemy.intermediary.type_id %>/icon?size=32">
+                <%= @alchemy[type_id].alchemy.intermediary.name %>
+            </td>
+            <td><%= format_number(@alchemy[type_id].alchemy.intermediary.amount) %></td>
+            <td><%= format_number(@alchemy[type_id].slot_value) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+
 <h3>Intermediary</h3>
 <div class="intermediary">
     <table>
@@ -58,7 +129,7 @@
             <th>Unit Cost</th>
             <th>Sell Price</th>
             <th>Buy Price</th>
-            <th>Alchemy Price</th>
+            <th>Slot Value</th>
         </tr>
     </thead>
     <tbody id="items">
@@ -88,7 +159,7 @@
             <td><%= format_number(@intermediary[type_id].unit_industry_cost) %></td>
             <td><%= format_number(@intermediary[type_id].sell_price) %> (<%= @intermediary[type_id].sell_margin %>) </td>
             <td><%= format_number(@intermediary[type_id].buy_price) %> (<%= @intermediary[type_id].buy_margin %>) </td>
-            <td><%= format_number(@intermediary[type_id].build_from_alchemy_value) %> (<%= @intermediary[type_id].alchemy_margin %>) </td>
+            <td><%= format_number(@intermediary[type_id].slot_value) %></td>
         </tr>
         <% end %>
     </tbody>
@@ -117,6 +188,7 @@
             <th>Sell Price</th>
             <th>Buy Price</th>
             <th>Batch Profit</th>
+            <th>Slot value</th>
         </tr>
     </thead>
 
@@ -158,6 +230,7 @@
             <td><%= format_number(@advanced[type_id].sell_price) %> (<%= @advanced[type_id].sell_margin %>) </td>
             <td><%= format_number(@advanced[type_id].buy_price) %> (<%= @advanced[type_id].buy_margin %>) </td>
             <td><%= format_number(@advanced[type_id].batch_profit) %> (m)</td>
+            <td><%= format_number(@advanced[type_id].slot_value) %></td>
         </tr>
         <% end %>
     </tbody>

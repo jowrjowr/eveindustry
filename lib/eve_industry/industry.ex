@@ -87,6 +87,12 @@ defmodule EveIndustry.Industry do
     batch_size = Map.get(config, :batch_size, 20)
     security = Map.get(config, :security, :lowsec)
 
+    # need some sensible defaults
+    # tech 1: 10/20
+    # tech 2: 5/10
+
+    # IO.inspect(item)
+
     manufacturing_config =
       Map.get(config, :manufacturing, %{
         rig: :t1,
