@@ -23,6 +23,7 @@
             <th>Total</th>
             <th>Stockpile</th>
             <th>Purchase Amount</th>
+            <th>Slots (exact)</th>
         </tr>
     </thead>
     <tbody id="items">
@@ -35,6 +36,7 @@
             <td><%= format_number(@shopping_list[type_id].quantity.total) %></td>
             <td><%= format_number(@shopping_list[type_id].quantity.stockpile) %></td>
             <td><%= format_number(@shopping_list[type_id].quantity.purchase) %></td>
+            <td><%= Kernel.ceil(@shopping_list[type_id].slots) %> (<%= Float.round(@shopping_list[type_id].slots, 2) %>) </td>
         </tr>
         <% end %>
     </tbody>
