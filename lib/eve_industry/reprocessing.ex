@@ -65,8 +65,7 @@ defmodule EveIndustry.Ore do
 
     excluded = not_ore ++ ice_ores
 
-    # special kinda-compressed pochven ore Talassonite
-    included = [52306, 56626, 56625]
+    included = []
 
     query =
       from(r in EveIndustry.Schema.Derived.Reprocessing,
