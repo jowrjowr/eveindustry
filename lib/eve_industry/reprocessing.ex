@@ -61,10 +61,7 @@ defmodule EveIndustry.Ore do
 
     # exclude this stuff
     not_ore = [41139, 41144, 47450]
-    ice_ores = Enum.to_list(28433..28444)
-
-    excluded = not_ore ++ ice_ores
-
+    excluded = not_ore
     included = []
 
     query =
@@ -99,6 +96,42 @@ defmodule EveIndustry.Ore do
 
     ore
   end
+
+  # def compressed_gas(security \\ :lowsec, implant \\ :four_percent, structure \\ :athanor) do
+  #   # compressed gas is handled slightly differently
+
+  #   compressed_gas_typeids = Enum.to_list(62377..62406)
+
+  #   query =
+  #     from(r in EveIndustry.Schema.Derived.Reprocessing,
+  #       where: r.typeID in ^compressed_gas_typeids,
+  #       where: r.published == true,
+  #       preload: [
+  #         :reprocessing,
+  #         reprocessing: [:name]
+  #       ]
+  #     )
+
+  #   sde_ore = EveIndustry.Repo.all(query)
+
+  #   # now the idea is to calculate out what each type_id refines into, and how much.
+
+  #   ore =
+  #     sde_ore
+  #     |> Enum.reduce([], fn item, acc -> [item.typeID] ++ acc end)
+  #     |> Map.new(fn type_id ->
+  #       {
+  #         type_id,
+  #         calculate_prices(
+  #           type_id,
+  #           Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
+  #           bonuses(implant, structure, security, rig)
+  #         )
+  #       }
+  #     end)
+
+  #   ore
+  # end
 
   defp calculate_prices(type_id, data, refine_fraction) do
     # reduce down the SDE spew to something a little more managable:

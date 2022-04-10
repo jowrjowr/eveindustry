@@ -12,19 +12,24 @@
         <br>
         Structure Type: <%= select(f, :structure, select_structure(), selected: @config["structure"]) %>
         <br>
-        Select Mineral: <%= select(f, :mineral, select_mineral(), selected: @config["mineral"]) %>
+        (Regular Ores) Select Mineral: <%= select(f, :mineral, select_mineral(), selected: @config["mineral"]) %>
+        <br>
+        (Moon Ores) Select Moongoo: <%= select(f, :moongoo, select_moongoo(), selected: @config["moongoo"]) %>
         <br>
         Show Only Profitable: <%= select(f, :show_profitable, ["No": false, "Yes": true], selected: @config["show_profitable"]) %>
+        <br>
+        Hide items with no sell volume: <%= select(f, :hide_no_sell_volume, ["No": false, "Yes": true], selected: @config["hide_no_sell_volume"]) %>
 
     </form>
 </div>
 <br>
 
-<div class="refine">
+<h3>Regular Ore</h3>
+<div class="refine_regular">
     <table>
     <thead>
         <tr>
-            <th>Compressed Ore</th>
+            <th>Name</th>
             <th>unit value</th>
             <th>sell margin</th>
             <th>sell price</th>
@@ -40,23 +45,133 @@
             <th>Morphite</th>
         </tr>
     </thead>
-    <tbody id="items">
-        <%= for type_id <- Map.keys(@data) do %>
+    <tbody id="regular_items">
+        <%= for type_id <- Map.keys(@regular) do %>
         <tr>
-            <td><%= trim_compressed(@data[type_id].name) %></td>
-            <td><%= format_number(@data[type_id].unit_value) %></td>
-            <td><%= format_percent(@data[type_id].sell_margin) %></td>
-            <td><%= format_number(@data[type_id].sell_price) %></td>
-            <td><%= format_percent(@data[type_id].buy_margin) %></td>
-            <td><%= format_number(@data[type_id].buy_price) %></td>
-            <td><%= fetch_yield(@data[type_id], 34)%></td>
-            <td><%= fetch_yield(@data[type_id], 35)%></td>
-            <td><%= fetch_yield(@data[type_id], 37)%></td>
-            <td><%= fetch_yield(@data[type_id], 36)%></td>
-            <td><%= fetch_yield(@data[type_id], 38)%></td>
-            <td><%= fetch_yield(@data[type_id], 39)%></td>
-            <td><%= fetch_yield(@data[type_id], 40)%></td>
-            <td><%= fetch_yield(@data[type_id], 11399)%></td>
+            <td><%= trim_compressed(@regular[type_id].name) %></td>
+            <td><%= format_number(@regular[type_id].unit_value) %></td>
+            <td><%= format_percent(@regular[type_id].sell_margin) %></td>
+            <td><%= format_number(@regular[type_id].sell_price) %></td>
+            <td><%= format_percent(@regular[type_id].buy_margin) %></td>
+            <td><%= format_number(@regular[type_id].buy_price) %></td>
+            <td><%= fetch_yield(@regular[type_id], 34)%></td>
+            <td><%= fetch_yield(@regular[type_id], 35)%></td>
+            <td><%= fetch_yield(@regular[type_id], 37)%></td>
+            <td><%= fetch_yield(@regular[type_id], 36)%></td>
+            <td><%= fetch_yield(@regular[type_id], 38)%></td>
+            <td><%= fetch_yield(@regular[type_id], 39)%></td>
+            <td><%= fetch_yield(@regular[type_id], 40)%></td>
+            <td><%= fetch_yield(@regular[type_id], 11399)%></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Ice</h3>
+<div class="refine_ice">
+    <table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>unit value</th>
+            <th>sell margin</th>
+            <th>sell price</th>
+            <th>buy margin</th>
+            <th>buy price</th>
+            <th>heavy water</th>
+            <th>ozone</th>
+            <th>stront</th>
+            <th>nitrogen</th>
+            <th>oxygen</th>
+            <th>helium</th>
+            <th>hydrogen</th>
+        </tr>
+    </thead>
+    <tbody id="ice_items">
+        <%= for type_id <- Map.keys(@ice) do %>
+        <tr>
+            <td><%= trim_compressed(@ice[type_id].name) %></td>
+            <td><%= format_number(@ice[type_id].unit_value) %></td>
+            <td><%= format_percent(@ice[type_id].sell_margin) %></td>
+            <td><%= format_number(@ice[type_id].sell_price) %></td>
+            <td><%= format_percent(@ice[type_id].buy_margin) %></td>
+            <td><%= format_number(@ice[type_id].buy_price) %></td>
+            <td><%= fetch_yield(@ice[type_id], 16272)%></td>
+            <td><%= fetch_yield(@ice[type_id], 16273)%></td>
+            <td><%= fetch_yield(@ice[type_id], 16275)%></td>
+            <td><%= fetch_yield(@ice[type_id], 17888)%></td>
+            <td><%= fetch_yield(@ice[type_id], 17887)%></td>
+            <td><%= fetch_yield(@ice[type_id], 16274)%></td>
+            <td><%= fetch_yield(@ice[type_id], 17889)%></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>Moon ore (T1 minerals not shown)</h3>
+<div class="refine_moongoo">
+    <table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>unit value</th>
+            <th>sell margin</th>
+            <th>sell price</th>
+            <th>buy margin</th>
+            <th>buy price</th>
+            <th>atm. gasses</th>
+            <th>cadmium</th>
+            <th>caesium</th>
+            <th>chromium</th>
+            <th>cobalt</th>
+            <th>dyspro</th>
+            <th>eva. deposits</th>
+            <th>hafnium</th>
+            <th>hydrocarbons</th>
+            <th>mercury</th>
+            <th>neodynium</th>
+            <th>platinum</th>
+            <th>promethium</th>
+            <th>scandium</th>
+            <th>silicates</th>
+            <th>technetium</th>
+            <th>thulium</th>
+            <th>titanium</th>
+            <th>tungsten</th>
+            <th>vanadium</th>
+        </tr>
+    </thead>
+    <tbody id="moon_items">
+        <%= for type_id <- Map.keys(@moon) do %>
+        <tr>
+            <td><%= trim_compressed(@moon[type_id].name) %></td>
+            <td><%= format_number(@moon[type_id].unit_value) %></td>
+            <td><%= format_percent(@moon[type_id].sell_margin) %></td>
+            <td><%= format_number(@moon[type_id].sell_price) %></td>
+            <td><%= format_percent(@moon[type_id].buy_margin) %></td>
+            <td><%= format_number(@moon[type_id].buy_price) %></td>
+            <td><%= fetch_yield(@moon[type_id], 16634)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16643)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16647)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16641)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16640)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16650)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16635)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16648)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16633)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16646)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16651)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16644)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16652)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16639)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16636)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16649)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16653)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16638)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16637)%></td>
+            <td><%= fetch_yield(@moon[type_id], 16642)%></td>
         </tr>
         <% end %>
     </tbody>
