@@ -1,7 +1,5 @@
 defmodule EveIndustry.Bonuses.Manufacturing do
-
   def rig_me_bonus(security, rig) do
-
     # the bonusing is the same across all structure, rig, and security permutations
 
     base =
@@ -9,6 +7,7 @@ defmodule EveIndustry.Bonuses.Manufacturing do
         nil -> 1
         :t1 -> 0.98
         :t2 -> 0.976
+        :thukker -> 0.963
       end
 
     security_multiplier =
@@ -20,7 +19,6 @@ defmodule EveIndustry.Bonuses.Manufacturing do
       end
 
     1 - (1 - base) * security_multiplier
-
   end
 
   def structure_hull_me_bonus(_structure) do
@@ -30,7 +28,5 @@ defmodule EveIndustry.Bonuses.Manufacturing do
     # won't assume retardation of building in non-bonused structure.
 
     0.99
-
   end
-
 end
