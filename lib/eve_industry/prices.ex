@@ -34,11 +34,16 @@ defmodule EveIndustry.Prices do
     # just shove the blob into ETS
     esi_url = "https://esi.evetech.net/latest/industry/systems"
 
-    {:ok, response} = Mojito.request(method: :get, url: esi_url, opts: [timeout: 50000])
+    req =
+      Req.new(
+        base_url: esi_url,
+        retry: :safe_transient,
+        decode_json: [keys: :atoms]
+      )
 
-    result = Jason.decode!(response.body, keys: :atoms)
+    {:ok, response} = Req.get(req)
 
-    for %{solar_system_id: solar_system_id, cost_indices: cost_indices} <- result do
+    for %{solar_system_id: solar_system_id, cost_indices: cost_indices} <- response.body do
       cost_indices =
         for %{activity: activity, cost_index: cost_index} <- cost_indices,
             into: %{},
@@ -55,11 +60,21 @@ defmodule EveIndustry.Prices do
     # ccp baseprice
 
     esi_url = "https://esi.evetech.net/latest/markets/prices/"
-    {:ok, response} = Mojito.request(method: :get, url: esi_url)
 
-    result = Jason.decode!(response.body, keys: :atoms)
+    req =
+      Req.new(
+        base_url: esi_url,
+        retry: :safe_transient
+      )
 
-    for item <- result do
+    Logger.debug("Fetching market")
+
+    {:ok, response} = Req.get(req)
+
+    total_items = length(response.body)
+    Logger.debug("Total items in market: #{total_items}")
+
+    for item <- response.body do
       Cachex.put(:adjusted_price, item[:type_id], item[:adjusted_price])
     end
 
@@ -180,22 +195,35 @@ defmodule EveIndustry.Prices do
     # fetch the raw price market data from ESI directly
     # can take awhile at hundreds of pages
 
-    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/?page=1"
+    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/"
 
-    {:ok, response} = Mojito.request(method: :get, url: esi_url)
+    req =
+      Req.new(
+        base_url: esi_url,
+        retry: :safe_transient,
+        decode_json: [keys: :atoms]
+      )
+
+    Logger.debug("Fetching market for region #{region}")
+
+    {:ok, response} = fetch_market_page_for_region(region, 1)
 
     total_pages =
       response.headers
-      |> Mojito.Headers.get("x-pages")
+      |> Map.get("x-pages")
+      |> hd()
       |> String.to_integer()
 
     Logger.debug("Total ESI market pages in region #{region}: #{total_pages}")
-    first_page = Jason.decode!(response.body, keys: :atoms)
+    first_page = response.body
 
     stream =
       Task.async_stream(
         2..total_pages,
-        fn page -> fetch_additional_market_pages(region, page) end,
+        fn page ->
+          {:ok, response} = fetch_market_page_for_region(region, page)
+          response.body
+        end,
         max_concurrency: 50
       )
 
@@ -206,16 +234,18 @@ defmodule EveIndustry.Prices do
     first_page ++ rest_of_data
   end
 
-  def fetch_additional_market_pages(region, page) do
-    # fetch the raw price market data from ESI directly
-    # can take awhile at hundreds of pages
-
+  defp fetch_market_page_for_region(region, page) do
     Logger.debug("Fetching ESI market page #{page}")
+    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/"
 
-    esi_url = "https://esi.evetech.net/latest/markets/#{region}/orders/?page=#{page}"
+    req =
+      Req.new(
+        base_url: esi_url,
+        retry: :safe_transient,
+        decode_json: [keys: :atoms],
+        params: [page: page]
+      )
 
-    {:ok, response} = Mojito.request(method: :get, url: esi_url)
-
-    Jason.decode!(response.body, keys: :atoms)
+    Req.get(req)
   end
 end

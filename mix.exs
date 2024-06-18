@@ -7,7 +7,7 @@ defmodule EveIndustry.MixProject do
       version: "0.1.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps()
@@ -40,7 +40,6 @@ defmodule EveIndustry.MixProject do
       {:floki, ">= 0.27.0", only: :test},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:mojito, "~> 0.7.12"},
       {:number, "~> 1.0.1"},
       {:phoenix, "~> 1.5.8"},
       {:phoenix_ecto, "~> 4.1"},
@@ -49,6 +48,7 @@ defmodule EveIndustry.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_dashboard, "~> 0.4"},
       {:plug_cowboy, "~> 2.0"},
+      {:req, "~> 0.5.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:timex, "~> 3.7"}
