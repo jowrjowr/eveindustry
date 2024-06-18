@@ -75,7 +75,7 @@
                 <img src="https://images.evetech.net/types/<%= @alchemy[type_id].products.type_id %>/icon?size=32">
                 <%= @alchemy[type_id].products.name %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@alchemy[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@alchemy[type_id]).name %>
@@ -141,7 +141,7 @@
                 <img src="https://images.evetech.net/types/<%= @intermediary[type_id].products.type_id %>/icon?size=32">
                 <%= @intermediary[type_id].products.name %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@intermediary[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@intermediary[type_id]).name %>
@@ -201,7 +201,7 @@
                 <img src="https://images.evetech.net/types/<%= @advanced[type_id].products.type_id %>/icon?size=32">
                 <%= @advanced[type_id].products.name %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@advanced[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@advanced[type_id]).name %>
@@ -269,7 +269,7 @@
                 <img src="https://images.evetech.net/types/<%= @gas_phase[type_id].products.type_id %>/icon?size=32">
                 <%= @gas_phase[type_id].products.name %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@gas_phase[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@gas_phase[type_id]).name %>
@@ -333,7 +333,7 @@
                 <img src="https://images.evetech.net/types/<%= @polymer[type_id].products.type_id %>/icon?size=32">
                 <%= @polymer[type_id].products.name %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@polymer[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@polymer[type_id]).name %>
@@ -392,7 +392,7 @@
                 <img src="https://images.evetech.net/types/<%= @booster[type_id].products.type_id %>/icon?size=32">
                 <%= trim_booster_name(@booster[type_id].products.name) %>
             </td>
-            <td><%= number_input f, :"#{type_id}" %></td>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
             <td>
                 <img src="https://images.evetech.net/types/<%= reaction_fuel(@booster[type_id]).type_id %>/icon?size=32">
                 <%= reaction_fuel(@booster[type_id]).name %>

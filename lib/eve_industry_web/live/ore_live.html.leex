@@ -177,3 +177,32 @@
     </tbody>
     </table>
 </div>
+
+
+<h3>compressed gas</h3>
+<div class="compressed_gas">
+    <table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>unit value</th>
+            <th>sell margin</th>
+            <th>sell price</th>
+            <th>buy margin</th>
+            <th>buy price</th>
+        </tr>
+    </thead>
+    <tbody id="gas_items">
+        <%= for type_id <- Map.keys(@gas) do %>
+        <tr>
+            <td><%= trim_compressed(@gas[type_id].name) %></td>
+            <td><%= format_number(@gas[type_id].unit_value) %></td>
+            <td><%= format_percent(@gas[type_id].sell_margin) %></td>
+            <td><%= format_number(@gas[type_id].sell_price) %></td>
+            <td><%= format_percent(@gas[type_id].buy_margin) %></td>
+            <td><%= format_number(@gas[type_id].buy_price) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>

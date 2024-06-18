@@ -22,6 +22,7 @@ defmodule EveIndustryWeb.Router do
     live "/reactions", ReactionsLive
     live "/structures", StructuresLive
     live "/components", ComponentsLive
+    live "/equipment", EquipmentLive
   end
 
   # Other scopes may use custom stacks.

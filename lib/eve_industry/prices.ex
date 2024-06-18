@@ -97,9 +97,17 @@ defmodule EveIndustry.Prices do
       data
       |> Enum.reduce([], fn item, acc -> [Map.drop(item, order_key_filter)] ++ acc end)
 
+    start_time = System.monotonic_time()
+
     prices =
-      type_ids
-      |> Map.new(fn type_id -> {type_id, calculate_price(type_id, data)} end)
+      data
+      |> Enum.group_by(&grab_typeid/1)
+      |> Enum.map(fn {type_id, type_data} -> {type_id, calculate_price(type_id, type_data)} end)
+      |> Map.new()
+
+    price_time = System.convert_time_unit(System.monotonic_time() - start_time, :native, :millisecond)
+
+    Logger.debug("price calculation time: #{price_time}")
 
     # take all of this and shove it into ETS
 
@@ -113,8 +121,10 @@ defmodule EveIndustry.Prices do
     :ok
   end
 
+  defp grab_typeid(%{type_id: type_id}), do: type_id
+
   def calculate_price(type_id, data) do
-    data = Enum.filter(data, fn item -> item[:type_id] == type_id end)
+    # data = Enum.filter(data, fn item -> item[:type_id] == type_id end)
 
     # example of ESI data processed:
     #

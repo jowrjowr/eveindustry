@@ -15,6 +15,8 @@ defmodule EveIndustryWeb.OreLive do
     moon = Enum.filter(all_compressed, fn {type_id, _item} -> type_id in compressed_moon_range end) |> Map.new()
     regular = Enum.filter(all_compressed, fn {type_id, _item} -> type_id in compressed_regular_range end) |> Map.new()
 
+    IO.inspect(gas)
+
     data = %{
       ice: ice,
       gas: gas,
@@ -66,8 +68,6 @@ defmodule EveIndustryWeb.OreLive do
         "true" -> true
         _ -> false
       end
-
-    IO.inspect(hide_no_sell_volume)
 
     ice =
       all_compressed

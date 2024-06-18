@@ -97,41 +97,41 @@ defmodule EveIndustry.Ore do
     ore
   end
 
-  # def compressed_gas(security \\ :lowsec, implant \\ :four_percent, structure \\ :athanor) do
-  #   # compressed gas is handled slightly differently
+  def compressed_gas(structure \\ :athanor) do
+    # compressed gas is handled slightly differently
 
-  #   compressed_gas_typeids = Enum.to_list(62377..62406)
+    compressed_gas_typeids = Enum.to_list(62377..62406)
 
-  #   query =
-  #     from(r in EveIndustry.Schema.Derived.Reprocessing,
-  #       where: r.typeID in ^compressed_gas_typeids,
-  #       where: r.published == true,
-  #       preload: [
-  #         :reprocessing,
-  #         reprocessing: [:name]
-  #       ]
-  #     )
+    query =
+      from(r in EveIndustry.Schema.Derived.Reprocessing,
+        where: r.typeID in ^compressed_gas_typeids,
+        where: r.published == true,
+        preload: [
+          :reprocessing,
+          reprocessing: [:name]
+        ]
+      )
 
-  #   sde_ore = EveIndustry.Repo.all(query)
+    sde_ore = EveIndustry.Repo.all(query)
 
-  #   # now the idea is to calculate out what each type_id refines into, and how much.
+    # now the idea is to calculate out what each type_id refines into, and how much.
 
-  #   ore =
-  #     sde_ore
-  #     |> Enum.reduce([], fn item, acc -> [item.typeID] ++ acc end)
-  #     |> Map.new(fn type_id ->
-  #       {
-  #         type_id,
-  #         calculate_prices(
-  #           type_id,
-  #           Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
-  #           bonuses(implant, structure, security, rig)
-  #         )
-  #       }
-  #     end)
+    ore =
+      sde_ore
+      |> Enum.reduce([], fn item, acc -> [item.typeID] ++ acc end)
+      |> Map.new(fn type_id ->
+        {
+          type_id,
+          calculate_prices(
+            type_id,
+            Enum.filter(sde_ore, fn item -> item.typeID == type_id end),
+            gas_bonus(structure)
+          )
+        }
+      end)
 
-  #   ore
-  # end
+    ore
+  end
 
   defp calculate_prices(type_id, data, refine_fraction) do
     # reduce down the SDE spew to something a little more managable:
@@ -224,6 +224,28 @@ defmodule EveIndustry.Ore do
     skills_bonus = 1.1
 
     base_yield * skills_bonus
+  end
+
+  defp gas_bonus(:tatara) do
+    base_yield = 0.8
+    skill_bonus = 0.05
+    structure_bonus = 0.1
+
+    base_yield + skill_bonus + structure_bonus
+  end
+
+  defp gas_bonus(:athanor) do
+    base_yield = 0.8
+    skill_bonus = 0.05
+    structure_bonus = 0.04
+
+    base_yield + skill_bonus + structure_bonus
+  end
+
+  defp gas_bonus(_) do
+    skills_bonus = 1.1
+
+    skills_bonus
   end
 
   defp bonuses(implant, structure, security, rig) do

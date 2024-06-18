@@ -1,10 +1,10 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import <nixos-22.05> {} }:
 
 with pkgs;
 
 let
   inherit (lib) optional optionals;
-  elixir = beam.packages.erlangR23.elixir_1_11;
+  elixir = beam.packages.erlangR24.elixir_1_13;
 in
 
 mkShell {
@@ -18,7 +18,11 @@ mkShell {
     zlib
     jq
     nodejs
-  ];
+  ]
+  
+  ++ optional stdenv.isLinux glibc
+  ++ optional stdenv.isLinux glibcLocales
+  ;
 
   # Fix GLIBC Locale
   LOCALE_ARCHIVE = lib.optionalString stdenv.isLinux

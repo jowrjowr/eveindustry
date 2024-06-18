@@ -24,6 +24,9 @@ defmodule EveIndustry.Industry do
     # industry flow, at maximum
     # cap ship -> cap component -> component -> adv reaction -> intermediate reaction -> fuel block
     # 6 levels worst case
+
+    # :eflame.apply(fn -> Map.new(industry, fn item -> calculate_industry_prices(item, industry) end) end, [])
+
     industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
     industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
     industry = Map.new(industry, fn item -> calculate_industry_prices(item, industry) end)
@@ -131,8 +134,7 @@ defmodule EveIndustry.Industry do
         material_type_id = material.materialTypeID
         material_industry_type = Blueprints.item_industry_type(material_type_id)
 
-        material_quantity =
-          Formulas.material_amount(blueprint_me, me_bonus, material.quantity, batch_size)
+        material_quantity = Formulas.material_amount(blueprint_me, me_bonus, material.quantity, batch_size)
 
         result = %{
           type_id: material_type_id,
@@ -162,7 +164,9 @@ defmodule EveIndustry.Industry do
   end
 
   defp calculate_tax(config, {type_id, item}) do
-    solar_system_id = Map.get(config, :solar_system_id, 30_002_538)
+    # vard: 30002538
+    # turnur: 30002086
+    solar_system_id = Map.get(config, :solar_system_id, 30_002_086)
     batch_size = Map.get(config, :batch_size, 20)
     blueprint = item.blueprint
 
@@ -208,35 +212,41 @@ defmodule EveIndustry.Industry do
     industry_cost =
       materials
       |> Enum.reduce(0, fn {material_type_id, material}, acc ->
-        industry_type = material.industry_type
-
-        material_value =
-          case industry_type do
-            nil ->
-              # buy from market
-              Prices.sell_price(material_type_id)
-
-            _ ->
-              # build me!
-              # these are almost all 1:1 except for some dumb ccp test blueprints
-              material_blueprint_type_id =
-                material_type_id
-                |> Blueprints.blueprint_from_type()
-                |> hd()
-
-              industry_cost =
-                all_items
-                |> Map.get(material_blueprint_type_id, %{})
-                |> Map.get(:unit_industry_cost, 0.0)
-
-              industry_cost
-          end
-
-        acc + material.quantity * material_value
+        result = calculate_price_step(material, material_type_id, all_items)
+        acc + result
       end)
 
     unit_industry_cost = item.unit_tax + industry_cost / item.products.quantity
 
     {type_id, Map.put(item, :unit_industry_cost, unit_industry_cost)}
+  end
+
+  @spec calculate_price_step(atom | %{:industry_type => any, :quantity => number, optional(any) => any}, any, any) :: number
+  def calculate_price_step(material, material_type_id, all_items) do
+    industry_type = material.industry_type
+
+    material_value =
+      case industry_type do
+        nil ->
+          # buy from market
+          Prices.sell_price(material_type_id)
+
+        _ ->
+          # build me!
+          # these are almost all 1:1 except for some dumb ccp test blueprints
+          material_blueprint_type_id =
+            material_type_id
+            |> Blueprints.blueprint_from_type()
+            |> hd()
+
+          industry_cost =
+            all_items
+            |> Map.get(material_blueprint_type_id, %{})
+            |> Map.get(:unit_industry_cost, 0.0)
+
+          industry_cost
+      end
+
+    material.quantity * material_value
   end
 end

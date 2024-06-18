@@ -33,13 +33,14 @@ defmodule EveIndustry.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:cachex, "~> 3.3"},
-      {:ecto_sql, "~> 3.4"},
-      {:ecto_sqlite3, "~> 0.5.2"},
+      {:cachex, "~> 3.4"},
+      {:ecto_sql, "~> 3.8"},
+      {:ecto_sqlite3, "~> 0.7"},
+      {:eflame, "~> 1.0"},
       {:floki, ">= 0.27.0", only: :test},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:mojito, "~> 0.7.7"},
+      {:mojito, "~> 0.7.12"},
       {:number, "~> 1.0.1"},
       {:phoenix, "~> 1.5.8"},
       {:phoenix_ecto, "~> 4.1"},

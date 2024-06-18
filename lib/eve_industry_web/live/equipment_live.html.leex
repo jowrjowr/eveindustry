@@ -1,0 +1,202 @@
+<h2>Equipment</h2>
+
+<%= f = form_for :form, "#", [phx_submit: :submit] %>
+<div class="configuration">
+<br>Configuration</br>
+    <br>
+    Security: <%= select(f, :security, select_security()) %>
+    <br>
+    Rig: <%= select(f, :rig, select_rig()) %>
+    <br>
+    Structure: <%= select(f, :structure, select_manufacturing_structure()) %>
+    <br>
+    <%= submit "SUBMIT" %>
+</div>
+<br>
+
+<%= if @shopping_list != nil do %>
+
+    <h3>SHOPPING LIST</h3>
+    <table>
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Total</th>
+            <th>Stockpile</th>
+            <th>Purchase Amount</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@shopping_list) do %>
+        <tr>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @shopping_list[type_id].type_id %>/icon?size=32">
+                <%= @shopping_list[type_id].name %>
+            </td>
+            <td><%= format_number(@shopping_list[type_id].quantity.total) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.stockpile) %></td>
+            <td><%= format_number(@shopping_list[type_id].quantity.purchase) %></td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+<% end %>
+
+
+<h3>t2 structure modules</h3>
+<div class="t2_modules">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@t2_modules) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @t2_modules[type_id].products.type_id %>/icon?size=32">
+                <%= @t2_modules[type_id].products.name %>
+            </td>
+            <td><%= format_number(@t2_modules[type_id].unit_industry_cost) %></td>
+            <td><%= @t2_modules[type_id].sell_margin %> </td>
+            <td><%= @t2_modules[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+
+<h3>t1 structure modules</h3>
+<div class="t1_modules">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>typeid</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@t1_modules) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
+            <td><%= "#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @t1_modules[type_id].products.type_id %>/icon?size=32">
+                <%= @t1_modules[type_id].products.name %>
+            </td>
+            <td><%= format_number(@t1_modules[type_id].unit_industry_cost) %></td>
+            <td><%= @t1_modules[type_id].sell_margin %> </td>
+            <td><%= @t1_modules[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>service modules</h3>
+<div class="service_modules">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>typeid</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@service_modules) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
+            <td><%= "#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @service_modules[type_id].products.type_id %>/icon?size=32">
+                <%= @service_modules[type_id].products.name %>
+            </td>
+            <td><%= format_number(@service_modules[type_id].unit_industry_cost) %></td>
+            <td><%= @service_modules[type_id].sell_margin %> </td>
+            <td><%= @service_modules[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>T1 structure fighters</h3>
+<div class="t1_fighters">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>typeid</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@t1_fighters) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
+            <td><%= "#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @t1_fighters[type_id].products.type_id %>/icon?size=32">
+                <%= @t1_fighters[type_id].products.name %>
+            </td>
+            <td><%= format_number(@t1_fighters[type_id].unit_industry_cost) %></td>
+            <td><%= @t1_fighters[type_id].sell_margin %> </td>
+            <td><%= @t1_fighters[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+<h3>t2 fighters</h3>
+<div class="t2_fighters">
+    <table>
+    <thead>
+        <tr>
+            <th>Batches (of 20)</th>
+            <th>typeid</th>
+            <th>Item</th>
+            <th>Unit Cost</th>
+            <th>Sell Margin</th>
+            <th>Buy Margin</th>
+        </tr>
+    </thead>
+    <tbody id="items">
+        <%= for type_id <- Map.keys(@t2_fighters) do %>
+        <tr>
+            <td><%= number_input f, :"#{type_id}", [phx_update: "ignore"] %></td>
+            <td><%= "#{type_id}" %></td>
+            <td>
+                <img src="https://images.evetech.net/types/<%= @t2_fighters[type_id].products.type_id %>/icon?size=32">
+                <%= @t2_fighters[type_id].products.name %>
+            </td>
+            <td><%= format_number(@t2_fighters[type_id].unit_industry_cost) %></td>
+            <td><%= @t2_fighters[type_id].sell_margin %> </td>
+            <td><%= @t2_fighters[type_id].buy_margin %> </td>
+        </tr>
+        <% end %>
+    </tbody>
+    </table>
+</div>
+
+
+
+</form>
